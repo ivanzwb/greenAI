@@ -85,6 +85,8 @@ model CareTask {
   type          CareTaskType
   dueDate       DateTime
   status        CareTaskStatus @default(pending)
+  /// Set when status becomes `completed` (for funnel / ops metrics).
+  completedAt   DateTime?
   notifySentAt  DateTime?
   /// After a failed subscribe send, cron skips this task until this time (exponential backoff).
   notifyNextAttemptAt DateTime?
@@ -95,6 +97,7 @@ model CareTask {
 
   @@index([plantId, dueDate])
   @@index([status, dueDate])
+  @@index([completedAt])
 }
 
 model SubscribeGrant {

@@ -15,11 +15,40 @@ import plantsRoutes from "../routes/plants.js";
 import tasksRoutes from "../routes/tasks.js";
 import { signUserToken } from "../lib/jwt.js";
 
-/** Set RUN_INTEGRATION_TESTS=1 (CI does) when Postgres is up and migrated. */
+function usesDockerComposeDbHostname(databaseUrl: string): boolean {
+  try {
+    const u = new URL(databaseUrl);
+    return u.hostname === "db";
+  } catch {
+    return /@db[:/]/i.test(databaseUrl);
+  }
+}
+
+/** When true, runs DB-backed API tests. Default: on if DATABASE_URL + JWT_SECRET are set. Opt out: SKIP_INTEGRATION_TESTS=1 or RUN_INTEGRATION_TESTS=0. Outside CI, skips when DATABASE_URL host is `db` (Compose); override with RUN_INTEGRATION_TESTS=1. */
+const integrationOptOut =
+  process.env.SKIP_INTEGRATION_TESTS === "1" ||
+  process.env.SKIP_INTEGRATION_TESTS === "true" ||
+  process.env.RUN_INTEGRATION_TESTS === "0" ||
+  process.env.RUN_INTEGRATION_TESTS === "false";
+
+const dbUrl = process.env.DATABASE_URL?.trim() ?? "";
+const inCi = Boolean(process.env.CI || process.env.GITHUB_ACTIONS);
+const forceIntegration =
+  process.env.RUN_INTEGRATION_TESTS === "1" ||
+  process.env.RUN_INTEGRATION_TESTS === "true";
+
 const runIntegration =
-  process.env.RUN_INTEGRATION_TESTS === "1" &&
-  Boolean(process.env.DATABASE_URL) &&
-  Boolean(process.env.JWT_SECRET);
+  !integrationOptOut &&
+  Boolean(dbUrl) &&
+  Boolean(process.env.JWT_SECRET?.trim()) &&
+  (forceIntegration || inCi || !usesDockerComposeDbHostname(dbUrl));
+
+if (runIntegration) {
+  process.env.WECHAT_APPID ||= "integration-test-appid";
+  process.env.WECHAT_SECRET ||= "integration-test-secret";
+  process.env.CRON_HMAC_SECRET ||= "integration-test-cron-secret-16";
+  process.env.SUBSCRIBE_TEMPLATE_ID ||= "integration-test-template-id";
+}
 
 async function buildApp(
   ...plugins: FastifyPluginAsync[]

@@ -8,6 +8,32 @@
     "pages/discover-detail/discover-detail",
     "pages/diagnose/diagnose"
   ],
+  "tabBar": {
+    "color": "#666666",
+    "selectedColor": "#1b7a4c",
+    "backgroundColor": "#f7f7f7",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "今日",
+        "iconPath": "images/tab.png",
+        "selectedIconPath": "images/tab-active.png"
+      },
+      {
+        "pagePath": "pages/plants/plants",
+        "text": "植物",
+        "iconPath": "images/tab.png",
+        "selectedIconPath": "images/tab-active.png"
+      },
+      {
+        "pagePath": "pages/discover/discover",
+        "text": "发现",
+        "iconPath": "images/tab.png",
+        "selectedIconPath": "images/tab-active.png"
+      }
+    ]
+  },
   "window": {
     "navigationBarTitleText": "植物管家"
   },

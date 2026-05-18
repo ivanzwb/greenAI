@@ -1,4 +1,5 @@
 const { BASE_URL, setToken } = require("./utils/api.js");
+const { refreshTodayTabBadge } = require("./utils/tabBadge.js");
 
 App({
   onLaunch() {
@@ -12,6 +13,7 @@ App({
           success: (r) => {
             if (r.statusCode === 200 && r.data && r.data.token) {
               setToken(r.data.token);
+              refreshTodayTabBadge();
             } else {
               console.error("auth failed", r.statusCode);
             }
@@ -20,5 +22,8 @@ App({
         });
       },
     });
+  },
+  onShow() {
+    refreshTodayTabBadge();
   },
 });

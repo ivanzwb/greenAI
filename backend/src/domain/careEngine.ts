@@ -16,11 +16,18 @@ export type WeatherSnapshot = {
    * Higher → slightly lengthen watering interval (rain likely).
    */
   upcomingWetBias?: number;
+  /**
+   * 0..1 — sustained dry outlook (low rain on each day + optional heat).
+   * Higher → slightly shorten watering interval.
+   */
+  upcomingDryBias?: number;
 };
 
 export type DailyPrecipHint = {
   precipitationProbabilityMax: number | null;
   precipitationSumMm: number | null;
+  /** Daily max °C when available (Open-Meteo `temperature_2m_max`). */
+  tempMaxC?: number | null;
 };
 
 export type PlantEnv = {
@@ -96,6 +103,40 @@ export function forecastWetBiasFromDaily(
   return max;
 }
 
+/**
+ * 0..1 — sustained dry outlook: penalises if any day still looks rainy (`weakest` gate).
+ * Uses mean dryness with continuity weighting; optional `tempMaxC` nudges when hot.
+ */
+export function forecastDryBiasFromDaily(
+  days: readonly DailyPrecipHint[]
+): number {
+  if (days.length < 2) return 0;
+  const scores: number[] = [];
+  for (const d of days) {
+    const p = Math.max(0, Math.min(100, d.precipitationProbabilityMax ?? 0)) / 100;
+    const mm = Math.max(0, d.precipitationSumMm ?? 0);
+    const lowP = 1 - p;
+    const lowM = 1 - Math.min(1, mm / 5);
+    let s = 0.55 * lowP + 0.45 * lowM;
+    if (typeof d.tempMaxC === "number" && Number.isFinite(d.tempMaxC)) {
+      const heat = Math.min(1, Math.max(0, (d.tempMaxC - 28) / 14));
+      s = Math.min(1, s + heat * 0.12);
+    }
+    scores.push(Math.min(1, Math.max(0, s)));
+  }
+  const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const weakest = Math.min(...scores);
+  if (weakest < 0.38) return 0;
+  return Math.min(1, Math.max(0, 0.42 * weakest + 0.58 * mean));
+}
+
+/** Multiplier from forecast dry bias; damped — shorter interval when sustained dry. */
+export function forecastDryIntervalMultiplier(bias: number | undefined): number {
+  if (bias == null || Number.isNaN(bias) || bias < 0.45) return 1;
+  const t = Math.min(1, (bias - 0.45) / 0.55);
+  return 1 - t * 0.06;
+}
+
 /** Multiplier from forecast wet bias; damped to avoid large swings. */
 export function forecastIntervalMultiplier(bias: number | undefined): number {
   if (bias == null || Number.isNaN(bias) || bias < 0.08) return 1;
@@ -109,6 +150,7 @@ export function applyWeatherToIntervalDays(
 ): number {
   let m = weatherIntervalMultiplier(w);
   m *= forecastIntervalMultiplier(w?.upcomingWetBias);
+  m *= forecastDryIntervalMultiplier(w?.upcomingDryBias);
   m = Math.min(1.15, Math.max(0.85, m));
   return Math.max(2, Math.floor(baseIntervalDays * m));
 }

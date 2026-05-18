@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import {
   type WeatherSnapshot,
+  forecastDryBiasFromDaily,
   forecastWetBiasFromDaily,
 } from "../domain/careEngine.js";
 import {
@@ -26,6 +27,7 @@ export async function fetchUserWeatherSnapshot(
     });
 
     let upcomingWetBias: number | undefined;
+    let upcomingDryBias: number | undefined;
     try {
       const daily = await fetchOpenMeteoDailyForecast({
         latitude: u.latitude,
@@ -33,9 +35,13 @@ export async function fetchUserWeatherSnapshot(
         timezone: tz,
         forecastDays: 3,
       });
-      const bias = forecastWetBiasFromDaily(daily);
-      if (daily.length > 0 && bias > 0) {
-        upcomingWetBias = bias;
+      const wet = forecastWetBiasFromDaily(daily);
+      const dry = forecastDryBiasFromDaily(daily);
+      if (daily.length > 0 && wet > 0) {
+        upcomingWetBias = wet;
+      }
+      if (daily.length > 1 && dry > 0) {
+        upcomingDryBias = dry;
       }
     } catch {
       /* forecast optional — current-only still useful */
@@ -44,9 +50,8 @@ export async function fetchUserWeatherSnapshot(
     return {
       temperatureC: current.temperatureC,
       relativeHumidity: current.relativeHumidity,
-      ...(upcomingWetBias !== undefined
-        ? { upcomingWetBias }
-        : {}),
+      ...(upcomingWetBias !== undefined ? { upcomingWetBias } : {}),
+      ...(upcomingDryBias !== undefined ? { upcomingDryBias } : {}),
     };
   } catch {
     return null;

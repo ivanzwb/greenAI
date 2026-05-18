@@ -8,6 +8,10 @@
   <button class="save" type="primary" bindtap="onSave">保存时区</button>
 
   <view class="section-title">天气（P3 · Open-Meteo，免密钥）</view>
+  <view wx:if="{{needLocationTip}}" class="location-tip">
+    <text class="location-tip-title">环境感知</text>
+    <text class="location-tip-body">保存当前位置后，会结合当地温湿度与短期预报微调浇水间隔。请在下方点击「使用当前定位」并允许授权。</text>
+  </view>
   <view class="field">
     <text class="label">已保存位置（WGS84）</text>
     <text class="mono">{{locSummary}}</text>

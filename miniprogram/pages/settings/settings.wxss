@@ -82,3 +82,26 @@
 .row-btns button {
   margin: 0;
 }
+
+.location-tip {
+  background: #f1f8f4;
+  border: 1rpx solid #c8e6c9;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.location-tip-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1b5e20;
+  margin-bottom: 12rpx;
+}
+
+.location-tip-body {
+  display: block;
+  font-size: 26rpx;
+  color: #33691e;
+  line-height: 1.55;
+}

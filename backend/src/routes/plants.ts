@@ -67,6 +67,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
 
   app.get("/plants/:id", async (req, reply) => {
     const id = (req.params as { id: string }).id;
+    req.log = req.log.child({ plantId: id });
     const plant = await app.prisma.plant.findFirst({
       where: { id, userId: req.userId! },
     });
@@ -84,6 +85,8 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
   app.post("/plants", async (req, reply) => {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: "invalid_body" });
+
+    const t0 = Date.now();
 
     const baseInterval = computeWaterIntervalDays(parsed.data.waterPreference, {
       indoor: parsed.data.indoor,
@@ -144,6 +147,11 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       ],
     });
 
+    req.log.info(
+      { planInitMs: Date.now() - t0, horizonDays: 14 },
+      "plant_created_with_plan"
+    );
+
     return plant;
   });
 
@@ -156,6 +164,8 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       where: { id, userId: req.userId! },
     });
     if (!plant) return reply.status(404).send({ error: "not_found" });
+
+    req.log = req.log.child({ plantId: id });
 
     const updated = await app.prisma.plant.update({
       where: { id },
@@ -170,6 +180,7 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       where: { id, userId: req.userId! },
     });
     if (!plant) return reply.status(404).send({ error: "not_found" });
+    req.log = req.log.child({ plantId: id });
     await app.prisma.plant.delete({ where: { id } });
     return reply.status(204).send();
   });
@@ -182,6 +193,9 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     });
     if (!plant || !plant.carePlan)
       return reply.status(404).send({ error: "not_found" });
+
+    req.log = req.log.child({ plantId: id });
+    const t0 = Date.now();
 
     const baseInterval = computeWaterIntervalDays(plant.waterPreference, {
       indoor: plant.indoor,
@@ -233,6 +247,10 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       ],
     });
 
+    req.log.info(
+      { planRegenerateMs: Date.now() - t0, horizonDays: plant.carePlan.horizonDays },
+      "plan_regenerated"
+    );
     return { ok: true, baseIntervalDays: interval };
   });
 };

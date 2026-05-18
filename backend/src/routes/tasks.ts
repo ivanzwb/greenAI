@@ -46,7 +46,10 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
 
     await app.prisma.careTask.update({
       where: { id },
-      data: { status: CareTaskStatus.completed },
+      data: {
+        status: CareTaskStatus.completed,
+        completedAt: new Date(),
+      },
     });
 
     const baseInterval = computeWaterIntervalDays(task.plant.waterPreference, {

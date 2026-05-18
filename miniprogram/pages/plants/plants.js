@@ -1,9 +1,11 @@
 const { request } = require("../../utils/api.js");
+const { refreshTodayTabBadge } = require("../../utils/tabBadge.js");
 
 Page({
   data: { plants: [] },
   onShow() {
     this.load();
+    refreshTodayTabBadge();
   },
   async load() {
     try {

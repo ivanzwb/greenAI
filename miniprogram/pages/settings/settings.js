@@ -1,5 +1,8 @@
 const { request } = require("../../utils/api.js");
 
+/** 与首页 index.js 一致：已有位置后不再弹出「去设位置」引导。 */
+const LOCATION_INTRO_MODAL_KEY = "greenai_location_intro_modal_done";
+
 const ZONES = [
   "Asia/Shanghai",
   "Asia/Hong_Kong",
@@ -35,6 +38,7 @@ Page({
     labels: [...ZONES],
     tzIndex: 0,
     locSummary: "",
+    needLocationTip: false,
     weatherLine: "",
     forecastHint: "",
     forecastDays: [],
@@ -52,20 +56,26 @@ Page({
         labels = [tz, ...labels];
         idx = 0;
       }
+      const hasLoc = me.latitude != null && me.longitude != null;
       this.setData({
         labels,
         tzIndex: idx,
         locSummary: locSummary(me),
+        needLocationTip: !hasLoc,
         weatherLine: "",
         forecastHint: "",
         forecastDays: [],
       });
-      if (me.latitude != null && me.longitude != null) {
+      if (hasLoc) {
+        wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
         try {
           const w = await request({ path: "/weather/current", method: "GET" });
           let line = `当前约 ${w.temperatureC}°C，湿度 ${w.relativeHumidity}%`;
           if (w.upcomingWetBias != null && w.upcomingWetBias >= 0.08) {
             line += `；预报偏湿 ${Math.round(w.upcomingWetBias * 100)}%（已微调浇水间隔）`;
+          }
+          if (w.upcomingDryBias != null && w.upcomingDryBias >= 0.45) {
+            line += `；预报偏旱 ${Math.round(w.upcomingDryBias * 100)}%（已微调浇水间隔）`;
           }
           this.setData({
             weatherLine: line,
@@ -126,6 +136,7 @@ Page({
           data: { latitude: res.latitude, longitude: res.longitude },
         })
           .then(() => {
+            wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
             wx.showToast({ title: "位置已保存" });
             this.loadMeAndWeather();
           })
@@ -133,8 +144,26 @@ Page({
             wx.showToast({ title: "保存失败", icon: "none" });
           });
       },
-      fail: () => {
-        wx.showToast({ title: "需要定位权限", icon: "none" });
+      fail: (err) => {
+        const msg = (err && err.errMsg) || "";
+        const denied =
+          msg.includes("auth deny") ||
+          msg.includes("permission") ||
+          msg.includes("privacy");
+        if (denied) {
+          wx.showModal({
+            title: "需要定位权限",
+            content:
+              "保存经纬度后，才能根据所在地天气（Open-Meteo）微调浇水间隔。请在系统或小程序设置中开启位置权限。",
+            confirmText: "去设置",
+            cancelText: "取消",
+            success: (m) => {
+              if (m.confirm) wx.openSetting({});
+            },
+          });
+        } else {
+          wx.showToast({ title: "定位失败，请重试", icon: "none" });
+        }
       },
     });
   },

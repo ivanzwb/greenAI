@@ -1,7 +1,11 @@
 const rawArticles = require("../../data/knowledge.json");
+const { refreshTodayTabBadge } = require("../../utils/tabBadge.js");
 
 Page({
   data: { allArticles: [], articles: [], searchQuery: "" },
+  onShow() {
+    refreshTodayTabBadge();
+  },
   onLoad() {
     const all = Array.isArray(rawArticles) ? rawArticles : [];
     this.setData({ allArticles: all, articles: all });

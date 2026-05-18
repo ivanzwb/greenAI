@@ -3,6 +3,8 @@ import {
   applyWeatherToIntervalDays,
   computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  forecastDryBiasFromDaily,
+  forecastDryIntervalMultiplier,
   forecastIntervalMultiplier,
   forecastWetBiasFromDaily,
   generateFertilizeTasks,
@@ -86,6 +88,14 @@ describe("weatherIntervalMultiplier / applyWeatherToIntervalDays", () => {
       applyWeatherToIntervalDays(16, neutral)
     );
   });
+
+  it("shortens interval when forecast dry bias is high", () => {
+    const neutral = { temperatureC: 22, relativeHumidity: 55 };
+    const dryForecast = { ...neutral, upcomingDryBias: 0.92 };
+    expect(applyWeatherToIntervalDays(16, dryForecast)).toBeLessThan(
+      applyWeatherToIntervalDays(16, neutral)
+    );
+  });
 });
 
 describe("forecastWetBiasFromDaily / forecastIntervalMultiplier", () => {
@@ -100,6 +110,27 @@ describe("forecastWetBiasFromDaily / forecastIntervalMultiplier", () => {
     ]);
     expect(bias).toBeGreaterThan(0.55);
     expect(forecastIntervalMultiplier(bias)).toBeGreaterThan(1);
+  });
+});
+
+describe("forecastDryBiasFromDaily / forecastDryIntervalMultiplier", () => {
+  it("returns 0 when any day looks rainy", () => {
+    const d = forecastDryBiasFromDaily([
+      { precipitationProbabilityMax: 5, precipitationSumMm: 0, tempMaxC: 34 },
+      { precipitationProbabilityMax: 8, precipitationSumMm: 0, tempMaxC: 35 },
+      { precipitationProbabilityMax: 75, precipitationSumMm: 4, tempMaxC: 24 },
+    ]);
+    expect(d).toBe(0);
+  });
+
+  it("rises when several days are dry and warm", () => {
+    const d = forecastDryBiasFromDaily([
+      { precipitationProbabilityMax: 8, precipitationSumMm: 0, tempMaxC: 34 },
+      { precipitationProbabilityMax: 10, precipitationSumMm: 0, tempMaxC: 33 },
+      { precipitationProbabilityMax: 5, precipitationSumMm: 0, tempMaxC: 32 },
+    ]);
+    expect(d).toBeGreaterThan(0.45);
+    expect(forecastDryIntervalMultiplier(d)).toBeLessThan(1);
   });
 });
 

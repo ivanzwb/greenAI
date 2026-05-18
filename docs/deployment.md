@@ -35,7 +35,7 @@ cp .env.example .env
 | `DIAGNOSE_LLM_BASE_URL` | **可选**。默认 `https://api.openai.com/v1`；可改为兼容网关根路径（勿尾斜杠或按网关文档）。 |
 | `DIAGNOSE_LLM_MODEL` | **可选**。默认 `gpt-4o-mini`；若模型名含 `deepseek` 则请求体不附带 `response_format` 以兼容部分网关。同一套 LLM 环境变量亦用于 **盆土拍照估干湿**（`POST /soil/estimate-photo`）。 |
 
-Open-Meteo **实况与预报**无需额外密钥：用户在小程序保存经纬度后，后端代理 `GET /weather/current`（当前温湿 + **预报偏湿倾向 `upcomingWetBias`**，与浇水间隔引擎一致）与 `GET /weather/forecast`（未来 3 日逐日最高/最低温、降水概率与降水量，按用户已保存的 `timezone` 对齐日期）。`upcomingWetBias` 由 3 日预报聚合，与实况系数一起在 `applyWeatherToIntervalDays` 中微调浇水间隔。
+Open-Meteo **实况与预报**无需额外密钥：用户在小程序保存经纬度后，后端代理 `GET /weather/current`（当前温湿 + **预报偏湿倾向 `upcomingWetBias`**、**连续偏旱倾向 `upcomingDryBias`**，与浇水间隔引擎一致）与 `GET /weather/forecast`（未来 3 日逐日最高/最低温、降水概率与降水量，按用户已保存的 `timezone` 对齐日期）。`upcomingWetBias` / `upcomingDryBias` 均由多日预报聚合（偏湿略拉长间隔，连续偏旱略缩短；有明显雨天会压低偏旱信号），与实况系数一起在 `applyWeatherToIntervalDays` 中微调浇水间隔。
 
 ### 使用 `deploy/docker-compose.prod.yml` 时
 
@@ -143,7 +143,33 @@ $SECRET = "your-cron-hmac-secret"
 $ts = [int][double]::Parse((Get-Date -UFormat %s))
 $hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($SECRET))
 $sig = -join ($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes("$ts")) | ForEach-Object { $_.ToString("x2") })
-curl.exe -sS -X POST "https://YOUR_DOMAIN/internal/jobs/reminders" -H "x-timestamp: $ts" -H "x-signature: $sig"
+`POST https://YOUR_DOMAIN/internal/jobs/reminders` 的 JSON 响应除 `sent`、`skipped` 外，还包含 **`skippedNoQuota`**（无订阅额度）、**`skippedMaxFailures`**（失败次数已达上限）、**`skippedWxError`**（微信返回非 0 等），便于在日志平台统计「因额度跳过」占比。
+
+运维可额外使用 **只读指标**（与 Cron 相同的 HMAC 头，勿对公网开放）：
+
+`GET https://YOUR_DOMAIN/internal/metrics/summary?days=7`
+
+- `days`：1–90，默认 `7`。统计窗口内：用户/植物新增、任务待办与完成（**`completedInWindow`** 依赖 `CareTask.completedAt`，部署迁移后新产生的完成记录才有值）、订阅额度汇总、**`NotificationLog`** 按 `errcode` 聚合、未来 24 小时内待发送的待办数量等。
+
+**PowerShell 拉取指标示例：**
+
+```powershell
+$SECRET = "your-cron-hmac-secret"
+$ts = [int][double]::Parse((Get-Date -UFormat %s))
+$hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($SECRET))
+$sig = -join ($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes("$ts")) | ForEach-Object { $_.ToString("x2") })
+curl.exe -sS "https://YOUR_DOMAIN/internal/metrics/summary?days=7" -H "x-timestamp: $ts" -H "x-signature: $sig"
+```
+
+**Linux / macOS（bash）示例：**
+
+```bash
+SECRET="your-cron-hmac-secret"
+TS=$(date +%s)
+SIG=$(printf '%s' "$TS" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
+curl -sS "https://YOUR_DOMAIN/internal/metrics/summary?days=7" \
+  -H "x-timestamp: $TS" \
+  -H "x-signature: $SIG"
 ```
 
 ---

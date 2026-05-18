@@ -6,7 +6,13 @@ import { getAccessToken, sendSubscribeMessage } from "./wechat.js";
 
 export async function runReminderJob(
   prisma: PrismaClient
-): Promise<{ sent: number; skipped: number }> {
+): Promise<{
+  sent: number;
+  skipped: number;
+  skippedNoQuota: number;
+  skippedMaxFailures: number;
+  skippedWxError: number;
+}> {
   const config = loadConfig();
   const now = new Date();
   const windowEnd = new Date(now.getTime() + 15 * 60 * 1000);
@@ -26,7 +32,9 @@ export async function runReminderJob(
   });
 
   let sent = 0;
-  let skipped = 0;
+  let skippedNoQuota = 0;
+  let skippedMaxFailures = 0;
+  let skippedWxError = 0;
   const token = await getAccessToken(config.WECHAT_APPID, config.WECHAT_SECRET);
 
   for (const task of tasks) {
@@ -40,12 +48,12 @@ export async function runReminderJob(
     });
 
     if (!grant || grant.quota <= 0) {
-      skipped++;
+      skippedNoQuota++;
       continue;
     }
 
     if (task.notifyFailCount >= 5) {
-      skipped++;
+      skippedMaxFailures++;
       continue;
     }
 
@@ -103,10 +111,17 @@ export async function runReminderJob(
           lastError: errSummary.slice(0, 500),
         },
       });
-      skipped++;
+      skippedWxError++;
     }
   }
 
-  return { sent, skipped };
+  const skipped = skippedNoQuota + skippedMaxFailures + skippedWxError;
+  return {
+    sent,
+    skipped,
+    skippedNoQuota,
+    skippedMaxFailures,
+    skippedWxError,
+  };
 }
 
