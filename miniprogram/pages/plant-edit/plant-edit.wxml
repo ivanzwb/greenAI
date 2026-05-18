@@ -8,6 +8,9 @@
     <text class="field-label">品种</text>
     <input class="field-input" placeholder="例如：Epipremnum" value="{{speciesLabel}}" bindinput="onSpeciesInput" />
     <button class="identify-btn" size="mini" type="default" bindtap="onIdentifyPlant">拍照识别</button>
+    <view wx:if="{{knowledgeLink}}" class="knowledge-link" bindtap="onOpenKnowledge">
+      打开养护知识：{{knowledgeLink.title}}
+    </view>
   </view>
 
   <view class="field">
@@ -39,6 +42,7 @@
     <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
       <view class="picker-value">{{soilLabels[soilIndex]}}</view>
     </picker>
+    <button class="identify-btn" size="mini" type="default" bindtap="onEstimateSoilPhoto">拍照估算盆土</button>
   </view>
 
   <button class="submit" type="primary" bindtap="onSubmit">{{submitLabel}}</button>

@@ -3,6 +3,7 @@ const {
   SUBSCRIBE_TEMPLATE_ID,
   reportSubscribeFromWxResult,
 } = require("../../utils/api.js");
+const { bestKnowledgeMatch } = require("../../utils/knowledgeMatch.js");
 
 const WATER_RANGE = ["low", "medium", "high"];
 const WATER_LABELS = ["低", "中", "高"];
@@ -36,6 +37,7 @@ Page({
     lightLabels: LIGHT_LABELS,
     soilIndex: 0,
     soilLabels: SOIL_LABELS,
+    knowledgeLink: null,
   },
   onLoad(options) {
     if (options.id) {
@@ -56,6 +58,10 @@ Page({
         heating: Boolean(p.heating),
         lightIndex: prefIndex(LIGHT_RANGE, p.lightLevel),
         soilIndex: soilIndexFromApi(p.soilMoistureHint),
+        knowledgeLink: bestKnowledgeMatch(
+          p.speciesLabel || "",
+          p.nickname || ""
+        ),
       });
       wx.setNavigationBarTitle({ title: "编辑植物" });
     } catch (e) {
@@ -64,10 +70,14 @@ Page({
     }
   },
   onNicknameInput(e) {
-    this.setData({ nickname: e.detail.value });
+    const nickname = e.detail.value;
+    const link = bestKnowledgeMatch(this.data.speciesLabel || "", nickname);
+    this.setData({ nickname, knowledgeLink: link });
   },
   onSpeciesInput(e) {
-    this.setData({ speciesLabel: e.detail.value });
+    const speciesLabel = e.detail.value;
+    const link = bestKnowledgeMatch(speciesLabel, this.data.nickname || "");
+    this.setData({ speciesLabel, knowledgeLink: link });
   },
   onWaterChange(e) {
     this.setData({ waterIndex: Number(e.detail.value) });
@@ -83,6 +93,67 @@ Page({
   },
   onSoilChange(e) {
     this.setData({ soilIndex: Number(e.detail.value) });
+  },
+  onOpenKnowledge() {
+    const k = this.data.knowledgeLink;
+    if (!k || !k.id) return;
+    wx.navigateTo({
+      url: `/pages/discover-detail/discover-detail?id=${encodeURIComponent(k.id)}`,
+    });
+  },
+  onEstimateSoilPhoto() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ["image"],
+      sourceType: ["album", "camera"],
+      success: (pick) => {
+        const path = pick.tempFiles[0].tempFilePath;
+        const fs = wx.getFileSystemManager();
+        fs.readFile({
+          filePath: path,
+          encoding: "base64",
+          success: async (fileRes) => {
+            wx.showLoading({ title: "估算盆土", mask: true });
+            try {
+              const data = await request({
+                path: "/soil/estimate-photo",
+                method: "POST",
+                data: { imageBase64: fileRes.data },
+              });
+              const hint = data && data.soilMoistureHint;
+              const idx = SOIL_VALUES.indexOf(hint);
+              if (idx >= 1) {
+                this.setData({ soilIndex: idx });
+              }
+              const tip =
+                (data && data.wateringTip) ||
+                (data && data.rationale) ||
+                "已更新盆土选项";
+              wx.showToast({
+                title: tip.slice(0, 18) + (tip.length > 18 ? "…" : ""),
+                icon: "none",
+                duration: 2800,
+              });
+            } catch (e) {
+              const code = e && e.statusCode;
+              if (code === 503) {
+                wx.showToast({ title: "未配置视觉模型", icon: "none" });
+              } else {
+                wx.showToast({ title: "估算失败", icon: "none" });
+              }
+            } finally {
+              wx.hideLoading();
+            }
+          },
+          fail: () => {
+            wx.showToast({ title: "读取图片失败", icon: "none" });
+          },
+        });
+      },
+      fail: () => {
+        wx.showToast({ title: "未选择图片", icon: "none" });
+      },
+    });
   },
   onIdentifyPlant() {
     wx.chooseMedia({
@@ -109,9 +180,12 @@ Page({
                 return;
               }
               const nick = (this.data.nickname || "").trim();
+              const species = best.name || "";
+              const link = bestKnowledgeMatch(species, nick || species);
               this.setData({
-                speciesLabel: best.name,
-                nickname: nick || best.name,
+                speciesLabel: species,
+                nickname: nick || species,
+                knowledgeLink: link,
               });
               wx.showToast({ title: "已填入品种", icon: "success" });
             } catch (e) {

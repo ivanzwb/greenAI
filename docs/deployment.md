@@ -31,9 +31,9 @@ cp .env.example .env
 | `SUBSCRIBE_TEMPLATE_ID` | 已审核的订阅消息模板 ID，须与小程序里 `SUBSCRIBE_TEMPLATE_ID` 一致 |
 | `PORT` | API 监听端口，默认 `3000`（容器内端口；对外映射见下文） |
 | `BAIDU_API_KEY` / `BAIDU_SECRET_KEY` | **可选**。均配置时启用 **植物识别**（`POST /plants/identify`，百度 AI 图像识别-植物分类）。见 [植物识别](https://cloud.baidu.com/product/imagerecognition/plant) 开通与计费。 |
-| `DIAGNOSE_LLM_API_KEY` | **可选**。配置后启用 **视觉大模型诊断**（`POST /diagnose/llm`，OpenAI 兼容 `chat/completions` + 图像 URL）。 |
+| `DIAGNOSE_LLM_API_KEY` | **可选**。配置后启用 **视觉大模型诊断**（`POST /diagnose/llm`）与 **盆土拍照估干湿**（`POST /soil/estimate-photo`）；OpenAI 兼容 `chat/completions` + 图像。 |
 | `DIAGNOSE_LLM_BASE_URL` | **可选**。默认 `https://api.openai.com/v1`；可改为兼容网关根路径（勿尾斜杠或按网关文档）。 |
-| `DIAGNOSE_LLM_MODEL` | **可选**。默认 `gpt-4o-mini`；若模型名含 `deepseek` 则请求体不附带 `response_format` 以兼容部分网关。 |
+| `DIAGNOSE_LLM_MODEL` | **可选**。默认 `gpt-4o-mini`；若模型名含 `deepseek` 则请求体不附带 `response_format` 以兼容部分网关。同一套 LLM 环境变量亦用于 **盆土拍照估干湿**（`POST /soil/estimate-photo`）。 |
 
 ### 使用 `deploy/docker-compose.prod.yml` 时
 

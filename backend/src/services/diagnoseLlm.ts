@@ -26,7 +26,7 @@ export function toVisionImageDataUrl(imageBase64: string): string {
   return `data:image/jpeg;base64,${s}`;
 }
 
-function parseAssistantJson(content: string): unknown {
+export function parseAssistantJson(content: string): unknown {
   const trimmed = content.trim();
   const fence = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```$/i);
   const jsonStr = fence ? fence[1].trim() : trimmed;

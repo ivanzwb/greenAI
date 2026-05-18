@@ -1,9 +1,27 @@
-const articles = require("../../data/knowledge.json");
+const rawArticles = require("../../data/knowledge.json");
 
 Page({
-  data: { articles: [] },
+  data: { allArticles: [], articles: [], searchQuery: "" },
   onLoad() {
-    this.setData({ articles: Array.isArray(articles) ? articles : [] });
+    const all = Array.isArray(rawArticles) ? rawArticles : [];
+    this.setData({ allArticles: all, articles: all });
+  },
+  onSearchInput(e) {
+    const q = (e.detail.value || "").trim().toLowerCase();
+    this.setData({ searchQuery: e.detail.value || "" });
+    this.applyFilter(q);
+  },
+  applyFilter(q) {
+    const all = this.data.allArticles || [];
+    if (!q) {
+      this.setData({ articles: all });
+      return;
+    }
+    const filtered = all.filter((a) => {
+      const hay = `${a.title || ""} ${a.summary || ""} ${a.body || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+    this.setData({ articles: filtered });
   },
   onOpen(e) {
     const id = e.currentTarget.dataset.id;
