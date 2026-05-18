@@ -3,7 +3,9 @@
     "pages/index/index",
     "pages/plants/plants",
     "pages/plant-edit/plant-edit",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/discover/discover",
+    "pages/discover-detail/discover-detail"
   ],
   "window": {
     "navigationBarTitleText": "植物管家"

@@ -3,7 +3,7 @@
     <button class="btn" size="mini" bindtap="onRefresh">刷新</button>
     <button class="btn" size="mini" type="primary" bindtap="onSubscribe">订阅提醒</button>
     <button class="btn" size="mini" bindtap="goSettings">时区</button>
-    <button class="btn" size="mini" bindtap="goPlants">我的植物</button>
+    <button class="btn" size="mini" bindtap="goDiscover">发现</button>
     <button class="btn" size="mini" bindtap="goAdd">添加植物</button>
   </view>
 

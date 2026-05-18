@@ -1,0 +1,9 @@
+<view class="page">
+  <view class="intro">以下为常见室内植物与养护要点，可结合「我的植物」中的环境与提醒使用。</view>
+  <block wx:for="{{articles}}" wx:key="id">
+    <view class="card" data-id="{{item.id}}" bindtap="onOpen">
+      <text class="card-title">{{item.title}}</text>
+      <text class="card-summary">{{item.summary}}</text>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,5 @@
+<view class="page" wx:if="{{article}}">
+  <text class="title">{{article.title}}</text>
+  <text class="body">{{article.body}}</text>
+</view>
+<view wx:else class="empty">未找到该条目</view>

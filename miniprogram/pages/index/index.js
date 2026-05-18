@@ -45,6 +45,9 @@ Page({
   goAdd() {
     wx.navigateTo({ url: "/pages/plant-edit/plant-edit" });
   },
+  goDiscover() {
+    wx.navigateTo({ url: "/pages/discover/discover" });
+  },
   goPlants() {
     wx.navigateTo({ url: "/pages/plants/plants" });
   },
