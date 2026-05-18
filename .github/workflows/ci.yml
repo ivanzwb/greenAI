@@ -85,6 +85,12 @@ jobs:
       - name: Validate compose file
         run: docker compose -f docker-compose.yml config --quiet
 
+      - name: Validate production deploy compose
+        env:
+          POSTGRES_PASSWORD: ci_compose_test
+          DATABASE_URL: postgresql://greenai:ci_compose_test@db:5432/greenai
+        run: docker compose -f deploy/docker-compose.prod.yml config --quiet
+
   miniprogram-json:
     name: Miniprogram JSON
     runs-on: ubuntu-latest
