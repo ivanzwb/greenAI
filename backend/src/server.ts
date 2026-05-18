@@ -10,6 +10,7 @@ import plantsRoutes from "./routes/plants.js";
 import subscribeRoutes from "./routes/subscribe.js";
 import tasksRoutes from "./routes/tasks.js";
 import usersRoutes from "./routes/users.js";
+import weatherRoutes from "./routes/weather.js";
 
 const config = loadConfig();
 
@@ -28,6 +29,7 @@ await app.register(prismaPlugin);
 await app.register(healthRoutes);
 await app.register(authRoutes);
 await app.register(usersRoutes);
+await app.register(weatherRoutes);
 await app.register(plantsRoutes);
 await app.register(tasksRoutes);
 await app.register(subscribeRoutes);

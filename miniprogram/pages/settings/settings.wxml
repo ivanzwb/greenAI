@@ -5,5 +5,16 @@
       <view class="picker-value">{{labels[tzIndex]}}</view>
     </picker>
   </view>
-  <button class="save" type="primary" bindtap="onSave">保存</button>
+  <button class="save" type="primary" bindtap="onSave">保存时区</button>
+
+  <view class="section-title">天气（P2 · Open-Meteo，免密钥）</view>
+  <view class="field">
+    <text class="label">已保存位置（WGS84）</text>
+    <text class="mono">{{locSummary}}</text>
+  </view>
+  <view class="weather-line">{{weatherLine}}</view>
+  <view class="row-btns">
+    <button size="mini" type="primary" bindtap="onPickLocation">使用当前定位</button>
+    <button size="mini" bindtap="onClearLocation">清除位置</button>
+  </view>
 </view>

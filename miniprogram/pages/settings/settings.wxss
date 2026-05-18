@@ -24,3 +24,34 @@
 .save {
   margin-top: 24rpx;
 }
+
+.section-title {
+  margin-top: 40rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.mono {
+  display: block;
+  font-size: 26rpx;
+  color: #333;
+  margin-top: 8rpx;
+}
+
+.weather-line {
+  font-size: 26rpx;
+  color: #555;
+  margin: 16rpx 0;
+  line-height: 1.5;
+}
+
+.row-btns {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.row-btns button {
+  margin: 0;
+}

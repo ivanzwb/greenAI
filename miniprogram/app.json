@@ -7,5 +7,11 @@
   ],
   "window": {
     "navigationBarTitleText": "植物管家"
-  }
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于保存经纬度并查询所在地天气（Open-Meteo）"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation"]
 }
