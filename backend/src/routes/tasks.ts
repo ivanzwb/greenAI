@@ -2,11 +2,13 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { CareTaskStatus, CareTaskType } from "@prisma/client";
 import {
+  applyWeatherToIntervalDays,
   computeWaterIntervalDays,
   generateWaterTasks,
 } from "../domain/careEngine.js";
 import { utcRangeForUserLocalToday } from "../lib/dayRange.js";
 import { authenticate } from "../lib/authGuard.js";
+import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
 
 const tasksRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
@@ -43,11 +45,16 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
       data: { status: CareTaskStatus.completed },
     });
 
-    const interval = computeWaterIntervalDays(task.plant.waterPreference, {
+    const baseInterval = computeWaterIntervalDays(task.plant.waterPreference, {
       indoor: task.plant.indoor,
       heating: task.plant.heating,
       lightLevel: task.plant.lightLevel,
     });
+    const weather = await fetchUserWeatherSnapshot(
+      app.prisma,
+      task.plant.userId
+    );
+    const interval = applyWeatherToIntervalDays(baseInterval, weather);
 
     const horizon = task.plant.carePlan.horizonDays;
     const generated = generateWaterTasks({
@@ -121,4 +128,4 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
 };
 
 export default tasksRoutes;
-
+

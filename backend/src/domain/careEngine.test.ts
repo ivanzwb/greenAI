@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyWeatherToIntervalDays,
   computeWaterIntervalDays,
   generateWaterTasks,
+  weatherIntervalMultiplier,
 } from "./careEngine.js";
 
 describe("computeWaterIntervalDays", () => {
@@ -17,6 +19,29 @@ describe("computeWaterIntervalDays", () => {
       lightLevel: "medium",
     });
     expect(withHeat).toBeLessThan(without);
+  });
+});
+
+describe("weatherIntervalMultiplier / applyWeatherToIntervalDays", () => {
+  it("returns 1 when no weather", () => {
+    expect(weatherIntervalMultiplier(null)).toBe(1);
+    expect(applyWeatherToIntervalDays(7, null)).toBe(7);
+  });
+
+  it("shortens interval in hot dry air", () => {
+    const dryHot = { temperatureC: 32, relativeHumidity: 28 };
+    expect(weatherIntervalMultiplier(dryHot)).toBeLessThan(1);
+    expect(applyWeatherToIntervalDays(10, dryHot)).toBeLessThan(10);
+  });
+
+  it("lengthens interval in cool humid air", () => {
+    const coolHumid = { temperatureC: 4, relativeHumidity: 82 };
+    expect(weatherIntervalMultiplier(coolHumid)).toBeGreaterThan(1);
+    expect(applyWeatherToIntervalDays(10, coolHumid)).toBeGreaterThan(10);
+  });
+
+  it("never goes below 2 days floor", () => {
+    expect(applyWeatherToIntervalDays(2, { temperatureC: 40, relativeHumidity: 10 })).toBe(2);
   });
 });
 

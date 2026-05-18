@@ -7,10 +7,12 @@ import {
   WaterPreference,
 } from "@prisma/client";
 import {
+  applyWeatherToIntervalDays,
   computeWaterIntervalDays,
   generateWaterTasks,
 } from "../domain/careEngine.js";
 import { authenticate } from "../lib/authGuard.js";
+import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
 
 const createBody = z.object({
   nickname: z.string().min(1),
@@ -44,11 +46,13 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: "invalid_body" });
 
-    const interval = computeWaterIntervalDays(parsed.data.waterPreference, {
+    const baseInterval = computeWaterIntervalDays(parsed.data.waterPreference, {
       indoor: parsed.data.indoor,
       heating: parsed.data.heating,
       lightLevel: parsed.data.lightLevel,
     });
+    const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
+    const interval = applyWeatherToIntervalDays(baseInterval, weather);
 
     const plant = await app.prisma.plant.create({
       data: {
@@ -121,11 +125,13 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     if (!plant || !plant.carePlan)
       return reply.status(404).send({ error: "not_found" });
 
-    const interval = computeWaterIntervalDays(plant.waterPreference, {
+    const baseInterval = computeWaterIntervalDays(plant.waterPreference, {
       indoor: plant.indoor,
       heating: plant.heating,
       lightLevel: plant.lightLevel,
     });
+    const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
+    const interval = applyWeatherToIntervalDays(baseInterval, weather);
 
     await app.prisma.$transaction([
       app.prisma.careTask.deleteMany({
