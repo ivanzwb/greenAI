@@ -7,6 +7,7 @@
   <view class="field">
     <text class="field-label">品种</text>
     <input class="field-input" placeholder="例如：Epipremnum" value="{{speciesLabel}}" bindinput="onSpeciesInput" />
+    <button class="identify-btn" size="mini" type="default" bindtap="onIdentifyPlant">拍照识别</button>
   </view>
 
   <view class="field">

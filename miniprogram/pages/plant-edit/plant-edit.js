@@ -70,6 +70,59 @@ Page({
   onLightChange(e) {
     this.setData({ lightIndex: Number(e.detail.value) });
   },
+  onIdentifyPlant() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ["image"],
+      sourceType: ["album", "camera"],
+      success: (pick) => {
+        const path = pick.tempFiles[0].tempFilePath;
+        const fs = wx.getFileSystemManager();
+        fs.readFile({
+          filePath: path,
+          encoding: "base64",
+          success: async (fileRes) => {
+            wx.showLoading({ title: "识别中", mask: true });
+            try {
+              const data = await request({
+                path: "/plants/identify",
+                method: "POST",
+                data: { imageBase64: fileRes.data },
+              });
+              const best = data && data.best;
+              if (!best || !best.name) {
+                wx.showToast({ title: "未识别到植物", icon: "none" });
+                return;
+              }
+              const nick = (this.data.nickname || "").trim();
+              this.setData({
+                speciesLabel: best.name,
+                nickname: nick || best.name,
+              });
+              wx.showToast({ title: "已填入品种", icon: "success" });
+            } catch (e) {
+              const code = e && e.statusCode;
+              if (code === 503) {
+                wx.showToast({ title: "服务端未配置识别", icon: "none" });
+              } else if (code === 422) {
+                wx.showToast({ title: "未识别到植物", icon: "none" });
+              } else {
+                wx.showToast({ title: "识别失败", icon: "none" });
+              }
+            } finally {
+              wx.hideLoading();
+            }
+          },
+          fail: () => {
+            wx.showToast({ title: "读取图片失败", icon: "none" });
+          },
+        });
+      },
+      fail: () => {
+        wx.showToast({ title: "未选择图片", icon: "none" });
+      },
+    });
+  },
   async onSubmit() {
     const {
       plantId,

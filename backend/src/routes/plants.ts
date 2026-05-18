@@ -13,8 +13,10 @@ import {
   generateFertilizeTasks,
   generateWaterTasks,
 } from "../domain/careEngine.js";
+import { loadConfig, isBaiduPlantIdentifyConfigured } from "../config.js";
 import { authenticate } from "../lib/authGuard.js";
 import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
+import { identifyPlantWithBaidu } from "../services/baiduPlantIdentify.js";
 
 const createBody = z.object({
   nickname: z.string().min(1),
@@ -25,8 +27,37 @@ const createBody = z.object({
   lightLevel: z.nativeEnum(LightLevel),
 });
 
+const identifyBody = z.object({
+  imageBase64: z.string().min(50).max(8_000_000),
+});
+
 const plantsRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
+
+  app.post("/plants/identify", async (req, reply) => {
+    const config = loadConfig();
+    if (!isBaiduPlantIdentifyConfigured(config)) {
+      return reply.status(503).send({ error: "plant_identify_disabled" });
+    }
+    const parsed = identifyBody.safeParse(req.body);
+    if (!parsed.success) return reply.status(400).send({ error: "invalid_body" });
+    try {
+      const candidates = await identifyPlantWithBaidu({
+        apiKey: config.BAIDU_API_KEY,
+        secretKey: config.BAIDU_SECRET_KEY,
+        imageBase64: parsed.data.imageBase64,
+      });
+      const filtered = candidates.filter((c) => c.name !== "非植物");
+      if (!filtered.length) {
+        return reply.status(422).send({ error: "no_plant_recognized" });
+      }
+      const best = filtered[0];
+      return { best, candidates: filtered };
+    } catch (e) {
+      req.log.warn({ err: String(e) }, "plant_identify_failed");
+      return reply.status(502).send({ error: "plant_identify_upstream" });
+    }
+  });
 
   app.get("/plants/:id", async (req, reply) => {
     const id = (req.params as { id: string }).id;

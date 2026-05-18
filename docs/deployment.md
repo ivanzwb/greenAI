@@ -30,6 +30,7 @@ cp .env.example .env
 | `CRON_HMAC_SECRET` | 至少 16 字符；与云 Cron 共用，用于签名 `POST /internal/jobs/reminders` |
 | `SUBSCRIBE_TEMPLATE_ID` | 已审核的订阅消息模板 ID，须与小程序里 `SUBSCRIBE_TEMPLATE_ID` 一致 |
 | `PORT` | API 监听端口，默认 `3000`（容器内端口；对外映射见下文） |
+| `BAIDU_API_KEY` / `BAIDU_SECRET_KEY` | **可选**。均配置时启用 **植物识别**（`POST /plants/identify`，百度 AI 图像识别-植物分类）。见 [植物识别](https://cloud.baidu.com/product/imagerecognition/plant) 开通与计费。 |
 
 ### 使用 `deploy/docker-compose.prod.yml` 时
 

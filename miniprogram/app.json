@@ -11,6 +11,9 @@
   "permission": {
     "scope.userLocation": {
       "desc": "用于保存经纬度并查询所在地天气（Open-Meteo）"
+    },
+    "scope.camera": {
+      "desc": "用于拍摄植物照片并识别品种（可选）"
     }
   },
   "requiredPrivateInfos": ["getLocation"]

@@ -19,7 +19,7 @@ function request({ path, method = "GET", data }) {
       },
       success(res) {
         if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
-        else reject(new Error("http_" + res.statusCode));
+        else reject({ statusCode: res.statusCode, data: res.data });
       },
       fail: reject,
     });
