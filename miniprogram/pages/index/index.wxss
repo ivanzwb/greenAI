@@ -28,6 +28,12 @@
   margin-bottom: 20rpx;
 }
 
+/* 今日待办高亮（设计稿 §8：未完成突出） */
+.task-card--pending {
+  border-left: 8rpx solid #2e7d32;
+  background: #f1f8f4;
+}
+
 .task-row {
   display: flex;
   justify-content: space-between;

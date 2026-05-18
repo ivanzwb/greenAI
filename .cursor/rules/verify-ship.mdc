@@ -1,17 +1,36 @@
 ---
-description: After coding tasks, run backend verify then commit and push if green
+description: Verify, ship, then re-read MVP plan/spec and continue until scope met
 alwaysApply: true
 ---
 
-# greenAI：验证通过后提交并推送
+# greenAI：验证、推送与计划驱动迭代
+
+## 1. 每次改代码后的验证与提交
 
 当在本仓库中**完成一项实现或修复**（涉及 `backend/`、`miniprogram/`、`.github/` 等）时：
 
-1. 在仓库根目录执行 **`npm run verify:backend`**（等价于 `backend` 下 `npm run build` 与 `npm run test`）。
-2. 若命令**成功**且工作区有未提交变更：按仓库既有风格撰写 **单行 `feat:` / `fix:` / `ci:` / `chore:`** 等说明，然后执行  
-   **`npm run ship -- "type: 简要说明"`**（由脚本完成 `git add`、commit、push）。  
-   提交说明用英文或中文均可，与历史提交保持一致即可。
-3. 若验证**失败**：先修复问题，**不要** commit/push。
-4. 若用户**明确说不要提交/不要推送**：只跑验证，不执行 `ship`。
+1. 在仓库根目录执行 **`npm run verify:backend`**（`backend` 下 `build` + `test`）。
+2. 若**成功**且工作区有变更：用仓库风格写 **`feat:` / `fix:` / `ci:` / `chore:`** 单行说明，执行 **`npm run ship -- "type: 简要说明"`**（`git add`、commit、push）。
+3. 若验证**失败**：先修复，**不要** commit/push。
+4. 若用户**明确说不要提交/不要推送**：只跑验证，不 `ship`。
 
-用户已要求：验证通过且任务完成时**自动**走提交流程；除非用户临时禁止，否则应在同一会话内执行 `ship`。
+## 2. 每次 ship 成功后：对照计划看「下一步」
+
+在用户要求 **「按计划直到功能做完」** 或本轮已执行 `ship` 且未声明停时：
+
+1. 阅读 **`docs/superpowers/specs/2026-05-18-wechat-mp-care-mvp-design.md`** 与 **`docs/superpowers/plans/2026-05-18-wechat-mp-care-mvp.md`**（及与本次改动相关的路由、小程序页）。
+2. 对照当前实现，列出仍缺的 **MVP A 范围内** 项（忽略需在微信公众平台/运维侧配置的内容，例如真实 **模板 ID**、**合法请求域名**、生产密钥）。
+3. 若有**可编码闭环**的下一项：在本会话或后续轮次中**继续实现** → 再回到 §1 的 `verify:backend` → `ship`，形成迭代，直到：
+   - MVP 设计中的 **P0–P2 与小程序最小集** 在代码侧已覆盖，且仅剩「替换占位配置」类说明；或
+   - 遇到必须用户提供的配置/商务审核；或
+   - 用户要求暂停。
+
+## 3. MVP 完成度速查（实现侧）
+
+以下在仓库中已具备时，视为 **MVP A 实现闭环**（占位符仍须在部署前替换）：
+
+- 后端：微信登录 JWT、植物 CRUD、计划重算、今日任务、完成/跳过、订阅上报、HMAC 内部提醒任务、浇水+施肥任务、天气系数（有经纬度时）、失败退避、集成测试开关。
+- 小程序：首页任务、植物列表与编辑、设置（时区/定位/天气文案）、保存后订阅引导、`utils/api` 集中配置占位。
+- CI：`verify:backend`、Compose 校验、小程序 JSON 校验。
+
+若以上均满足且无新的可执行缺口，向用户**简要汇报「实现侧 MVP 已对齐计划」**，并列出仍需人工配置的项（域名、模板 ID、环境变量等）。

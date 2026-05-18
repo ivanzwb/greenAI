@@ -10,7 +10,7 @@
   <view wx:if="{{tasks.length === 0}}" class="empty">今日暂无待办任务</view>
 
   <block wx:for="{{tasks}}" wx:key="id">
-    <view class="task-card">
+    <view class="task-card task-card--pending">
       <view class="task-row">
         <text class="label">植物</text>
         <text class="value">{{item.plantNickname}}</text>
