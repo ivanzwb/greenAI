@@ -3,6 +3,8 @@ import {
   applyWeatherToIntervalDays,
   computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  forecastIntervalMultiplier,
+  forecastWetBiasFromDaily,
   generateFertilizeTasks,
   generateWaterTasks,
   weatherIntervalMultiplier,
@@ -75,6 +77,29 @@ describe("weatherIntervalMultiplier / applyWeatherToIntervalDays", () => {
 
   it("never goes below 2 days floor", () => {
     expect(applyWeatherToIntervalDays(2, { temperatureC: 40, relativeHumidity: 10 })).toBe(2);
+  });
+
+  it("lengthens interval when forecast wet bias is high", () => {
+    const neutral = { temperatureC: 22, relativeHumidity: 55 };
+    const wetForecast = { ...neutral, upcomingWetBias: 0.95 };
+    expect(applyWeatherToIntervalDays(16, wetForecast)).toBeGreaterThan(
+      applyWeatherToIntervalDays(16, neutral)
+    );
+  });
+});
+
+describe("forecastWetBiasFromDaily / forecastIntervalMultiplier", () => {
+  it("returns 0 for empty forecast", () => {
+    expect(forecastWetBiasFromDaily([])).toBe(0);
+    expect(forecastIntervalMultiplier(0)).toBe(1);
+  });
+
+  it("rises with high precip probability", () => {
+    const bias = forecastWetBiasFromDaily([
+      { precipitationProbabilityMax: 95, precipitationSumMm: 0 },
+    ]);
+    expect(bias).toBeGreaterThan(0.55);
+    expect(forecastIntervalMultiplier(bias)).toBeGreaterThan(1);
   });
 });
 

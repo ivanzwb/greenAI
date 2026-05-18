@@ -63,8 +63,12 @@ Page({
       if (me.latitude != null && me.longitude != null) {
         try {
           const w = await request({ path: "/weather/current", method: "GET" });
+          let line = `当前约 ${w.temperatureC}°C，湿度 ${w.relativeHumidity}%`;
+          if (w.upcomingWetBias != null && w.upcomingWetBias >= 0.08) {
+            line += `；预报偏湿 ${Math.round(w.upcomingWetBias * 100)}%（已微调浇水间隔）`;
+          }
           this.setData({
-            weatherLine: `当前约 ${w.temperatureC}°C，湿度 ${w.relativeHumidity}%`,
+            weatherLine: line,
           });
         } catch (e) {
           this.setData({ weatherLine: "天气暂不可用" });

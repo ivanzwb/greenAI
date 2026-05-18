@@ -7,10 +7,20 @@ export type SoilMoistureHint =
   | "dry"
   | "very_dry";
 
-/** Current outdoor-ish conditions (e.g. from Open-Meteo). Used only to nudge watering cadence. */
+/** Current outdoor-ish conditions + optional near-term precip signal from daily forecast. */
 export type WeatherSnapshot = {
   temperatureC: number;
   relativeHumidity: number;
+  /**
+   * 0..1 — how wet the next few days look in aggregate (from forecast prob + mm).
+   * Higher → slightly lengthen watering interval (rain likely).
+   */
+  upcomingWetBias?: number;
+};
+
+export type DailyPrecipHint = {
+  precipitationProbabilityMax: number | null;
+  precipitationSumMm: number | null;
 };
 
 export type PlantEnv = {
@@ -70,11 +80,36 @@ export function weatherIntervalMultiplier(
   return Math.min(1.12, Math.max(0.88, m));
 }
 
+/** Map next-day(s) precip hints to 0..1 for {@link WeatherSnapshot.upcomingWetBias}. */
+export function forecastWetBiasFromDaily(
+  days: readonly DailyPrecipHint[]
+): number {
+  if (!days.length) return 0;
+  let max = 0;
+  for (const d of days) {
+    const p = Math.max(0, Math.min(100, d.precipitationProbabilityMax ?? 0)) / 100;
+    const mm = Math.max(0, d.precipitationSumMm ?? 0);
+    const mmPart = Math.min(1, mm / 12);
+    const dayScore = Math.min(1, p * 0.62 + mmPart * 0.38);
+    max = Math.max(max, dayScore);
+  }
+  return max;
+}
+
+/** Multiplier from forecast wet bias; damped to avoid large swings. */
+export function forecastIntervalMultiplier(bias: number | undefined): number {
+  if (bias == null || Number.isNaN(bias) || bias < 0.08) return 1;
+  const t = Math.min(1, (bias - 0.08) / 0.92);
+  return 1 + t * 0.07;
+}
+
 export function applyWeatherToIntervalDays(
   baseIntervalDays: number,
   w?: WeatherSnapshot | null
 ): number {
-  const m = weatherIntervalMultiplier(w);
+  let m = weatherIntervalMultiplier(w);
+  m *= forecastIntervalMultiplier(w?.upcomingWetBias);
+  m = Math.min(1.15, Math.max(0.85, m));
   return Math.max(2, Math.floor(baseIntervalDays * m));
 }
 

@@ -1,9 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { authenticate } from "../lib/authGuard.js";
-import {
-  fetchOpenMeteoCurrent,
-  fetchOpenMeteoDailyForecast,
-} from "../services/openMeteo.js";
+import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
+import { fetchOpenMeteoDailyForecast } from "../services/openMeteo.js";
 
 const weatherRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
@@ -16,19 +14,15 @@ const weatherRoutes: FastifyPluginAsync = async (app) => {
     if (user.latitude == null || user.longitude == null) {
       return reply.status(400).send({ error: "no_location" });
     }
-    try {
-      const current = await fetchOpenMeteoCurrent({
-        latitude: user.latitude,
-        longitude: user.longitude,
-      });
-      return {
-        ...current,
-        latitude: user.latitude,
-        longitude: user.longitude,
-      };
-    } catch {
+    const snap = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
+    if (!snap) {
       return reply.status(502).send({ error: "weather_upstream" });
     }
+    return {
+      ...snap,
+      latitude: user.latitude,
+      longitude: user.longitude,
+    };
   });
 
   /** 未来数日逐日预报（与用户时区对齐），用于设置页与养护提示。 */

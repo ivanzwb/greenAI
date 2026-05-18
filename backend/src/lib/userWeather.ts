@@ -1,6 +1,12 @@
 import type { PrismaClient } from "@prisma/client";
-import type { WeatherSnapshot } from "../domain/careEngine.js";
-import { fetchOpenMeteoCurrent } from "../services/openMeteo.js";
+import {
+  type WeatherSnapshot,
+  forecastWetBiasFromDaily,
+} from "../domain/careEngine.js";
+import {
+  fetchOpenMeteoCurrent,
+  fetchOpenMeteoDailyForecast,
+} from "../services/openMeteo.js";
 
 export async function fetchUserWeatherSnapshot(
   prisma: PrismaClient,
@@ -8,14 +14,40 @@ export async function fetchUserWeatherSnapshot(
 ): Promise<WeatherSnapshot | null> {
   const u = await prisma.user.findUnique({
     where: { id: userId },
-    select: { latitude: true, longitude: true },
+    select: { latitude: true, longitude: true, timezone: true },
   });
   if (u?.latitude == null || u?.longitude == null) return null;
+  const tz = u.timezone || "Asia/Shanghai";
+
   try {
-    return await fetchOpenMeteoCurrent({
+    const current = await fetchOpenMeteoCurrent({
       latitude: u.latitude,
       longitude: u.longitude,
     });
+
+    let upcomingWetBias: number | undefined;
+    try {
+      const daily = await fetchOpenMeteoDailyForecast({
+        latitude: u.latitude,
+        longitude: u.longitude,
+        timezone: tz,
+        forecastDays: 3,
+      });
+      const bias = forecastWetBiasFromDaily(daily);
+      if (daily.length > 0 && bias > 0) {
+        upcomingWetBias = bias;
+      }
+    } catch {
+      /* forecast optional — current-only still useful */
+    }
+
+    return {
+      temperatureC: current.temperatureC,
+      relativeHumidity: current.relativeHumidity,
+      ...(upcomingWetBias !== undefined
+        ? { upcomingWetBias }
+        : {}),
+    };
   } catch {
     return null;
   }

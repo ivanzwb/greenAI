@@ -35,7 +35,7 @@ cp .env.example .env
 | `DIAGNOSE_LLM_BASE_URL` | **可选**。默认 `https://api.openai.com/v1`；可改为兼容网关根路径（勿尾斜杠或按网关文档）。 |
 | `DIAGNOSE_LLM_MODEL` | **可选**。默认 `gpt-4o-mini`；若模型名含 `deepseek` 则请求体不附带 `response_format` 以兼容部分网关。同一套 LLM 环境变量亦用于 **盆土拍照估干湿**（`POST /soil/estimate-photo`）。 |
 
-Open-Meteo **实况与预报**无需额外密钥：用户在小程序保存经纬度后，后端代理 `GET /weather/current`（当前温湿）与 `GET /weather/forecast`（未来 3 日逐日最高/最低温、降水概率与降水量，按用户已保存的 `timezone` 对齐日期）。
+Open-Meteo **实况与预报**无需额外密钥：用户在小程序保存经纬度后，后端代理 `GET /weather/current`（当前温湿 + **预报偏湿倾向 `upcomingWetBias`**，与浇水间隔引擎一致）与 `GET /weather/forecast`（未来 3 日逐日最高/最低温、降水概率与降水量，按用户已保存的 `timezone` 对齐日期）。`upcomingWetBias` 由 3 日预报聚合，与实况系数一起在 `applyWeatherToIntervalDays` 中微调浇水间隔。
 
 ### 使用 `deploy/docker-compose.prod.yml` 时
 
