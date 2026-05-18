@@ -52,6 +52,12 @@ export function applyWeatherToIntervalDays(
   return Math.max(2, Math.floor(baseIntervalDays * m));
 }
 
+/** Fertilize less often than water; derived from current water cadence (days), clamped. */
+export function computeFertilizeIntervalDays(waterIntervalDays: number): number {
+  const scaled = Math.floor(waterIntervalDays * 4);
+  return Math.max(14, Math.min(60, scaled));
+}
+
 export type GeneratedWaterTask = {
   plantId: string;
   dueDate: Date;
@@ -73,6 +79,16 @@ export function generateWaterTasks(input: {
     cursor = addDays(cursor, intervalDays);
   }
   return tasks;
+}
+
+/** Same horizon rule as {@link generateWaterTasks}, using the fertilize interval (days). */
+export function generateFertilizeTasks(input: {
+  asOf: Date;
+  intervalDays: number;
+  horizonDays: number;
+  plantId: string;
+}): GeneratedWaterTask[] {
+  return generateWaterTasks(input);
 }
 
 function startOfUtcDay(d: Date): Date {

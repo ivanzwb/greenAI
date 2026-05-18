@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   applyWeatherToIntervalDays,
+  computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  generateFertilizeTasks,
   generateWaterTasks,
   weatherIntervalMultiplier,
 } from "./careEngine.js";
@@ -42,6 +44,34 @@ describe("weatherIntervalMultiplier / applyWeatherToIntervalDays", () => {
 
   it("never goes below 2 days floor", () => {
     expect(applyWeatherToIntervalDays(2, { temperatureC: 40, relativeHumidity: 10 })).toBe(2);
+  });
+});
+
+describe("computeFertilizeIntervalDays", () => {
+  it("scales off water interval with floor and cap", () => {
+    expect(computeFertilizeIntervalDays(7)).toBe(28);
+    expect(computeFertilizeIntervalDays(2)).toBe(14);
+    expect(computeFertilizeIntervalDays(20)).toBe(60);
+  });
+});
+
+describe("generateFertilizeTasks", () => {
+  it("uses longer spacing than water in the same horizon", () => {
+    const asOf = new Date("2026-05-18T08:00:00.000Z");
+    const water = generateWaterTasks({
+      asOf,
+      intervalDays: 7,
+      horizonDays: 30,
+      plantId: "p1",
+    });
+    const fert = generateFertilizeTasks({
+      asOf,
+      intervalDays: computeFertilizeIntervalDays(7),
+      horizonDays: 30,
+      plantId: "p1",
+    });
+    expect(water.length).toBeGreaterThan(fert.length);
+    expect(fert.length).toBeGreaterThan(0);
   });
 });
 

@@ -8,7 +8,9 @@ import {
 } from "@prisma/client";
 import {
   applyWeatherToIntervalDays,
+  computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  generateFertilizeTasks,
   generateWaterTasks,
 } from "../domain/careEngine.js";
 import { authenticate } from "../lib/authGuard.js";
@@ -78,14 +80,29 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       horizonDays: 14,
       plantId: plant.id,
     });
+    const fertInterval = computeFertilizeIntervalDays(interval);
+    const generatedFert = generateFertilizeTasks({
+      asOf,
+      intervalDays: fertInterval,
+      horizonDays: 14,
+      plantId: plant.id,
+    });
 
     await app.prisma.careTask.createMany({
-      data: generated.map((g) => ({
-        plantId: g.plantId,
-        type: CareTaskType.water,
-        dueDate: g.dueDate,
-        status: CareTaskStatus.pending,
-      })),
+      data: [
+        ...generated.map((g) => ({
+          plantId: g.plantId,
+          type: CareTaskType.water,
+          dueDate: g.dueDate,
+          status: CareTaskStatus.pending,
+        })),
+        ...generatedFert.map((g) => ({
+          plantId: g.plantId,
+          type: CareTaskType.fertilize,
+          dueDate: g.dueDate,
+          status: CareTaskStatus.pending,
+        })),
+      ],
     });
 
     return plant;
@@ -151,14 +168,29 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       horizonDays: plant.carePlan.horizonDays,
       plantId: id,
     });
+    const fertInterval = computeFertilizeIntervalDays(interval);
+    const generatedFert = generateFertilizeTasks({
+      asOf: new Date(),
+      intervalDays: fertInterval,
+      horizonDays: plant.carePlan.horizonDays,
+      plantId: id,
+    });
 
     await app.prisma.careTask.createMany({
-      data: generated.map((g) => ({
-        plantId: g.plantId,
-        type: CareTaskType.water,
-        dueDate: g.dueDate,
-        status: CareTaskStatus.pending,
-      })),
+      data: [
+        ...generated.map((g) => ({
+          plantId: g.plantId,
+          type: CareTaskType.water,
+          dueDate: g.dueDate,
+          status: CareTaskStatus.pending,
+        })),
+        ...generatedFert.map((g) => ({
+          plantId: g.plantId,
+          type: CareTaskType.fertilize,
+          dueDate: g.dueDate,
+          status: CareTaskStatus.pending,
+        })),
+      ],
     });
 
     return { ok: true, baseIntervalDays: interval };

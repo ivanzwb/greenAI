@@ -3,7 +3,9 @@ import { z } from "zod";
 import { CareTaskStatus, CareTaskType } from "@prisma/client";
 import {
   applyWeatherToIntervalDays,
+  computeFertilizeIntervalDays,
   computeWaterIntervalDays,
+  generateFertilizeTasks,
   generateWaterTasks,
 } from "../domain/careEngine.js";
 import { utcRangeForUserLocalToday } from "../lib/dayRange.js";
@@ -59,14 +61,22 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
     const interval = applyWeatherToIntervalDays(baseInterval, weather);
 
     const horizon = task.plant.carePlan.horizonDays;
+    const asOf = new Date();
     const generated = generateWaterTasks({
-      asOf: new Date(),
+      asOf,
       intervalDays: interval,
       horizonDays: horizon,
       plantId: task.plantId,
     });
+    const fertInterval = computeFertilizeIntervalDays(interval);
+    const generatedFert = generateFertilizeTasks({
+      asOf,
+      intervalDays: fertInterval,
+      horizonDays: horizon,
+      plantId: task.plantId,
+    });
 
-    const existingDates = new Set(
+    const existingWaterDates = new Set(
       (
         await app.prisma.careTask.findMany({
           where: { plantId: task.plantId, type: CareTaskType.water },
@@ -75,19 +85,39 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
       ).map((t) => t.dueDate.toISOString().slice(0, 10))
     );
 
-    const toCreate = generated.filter(
-      (g) => !existingDates.has(g.dueDate.toISOString().slice(0, 10))
+    const existingFertDates = new Set(
+      (
+        await app.prisma.careTask.findMany({
+          where: { plantId: task.plantId, type: CareTaskType.fertilize },
+          select: { dueDate: true },
+        })
+      ).map((t) => t.dueDate.toISOString().slice(0, 10))
     );
 
-    if (toCreate.length) {
-      await app.prisma.careTask.createMany({
-        data: toCreate.map((g) => ({
-          plantId: g.plantId,
-          type: CareTaskType.water,
-          dueDate: g.dueDate,
-          status: CareTaskStatus.pending,
-        })),
-      });
+    const toCreateWater = generated.filter(
+      (g) => !existingWaterDates.has(g.dueDate.toISOString().slice(0, 10))
+    );
+    const toCreateFert = generatedFert.filter(
+      (g) => !existingFertDates.has(g.dueDate.toISOString().slice(0, 10))
+    );
+
+    const rows = [
+      ...toCreateWater.map((g) => ({
+        plantId: g.plantId,
+        type: CareTaskType.water,
+        dueDate: g.dueDate,
+        status: CareTaskStatus.pending,
+      })),
+      ...toCreateFert.map((g) => ({
+        plantId: g.plantId,
+        type: CareTaskType.fertilize,
+        dueDate: g.dueDate,
+        status: CareTaskStatus.pending,
+      })),
+    ];
+
+    if (rows.length) {
+      await app.prisma.careTask.createMany({ data: rows });
     }
 
     return { ok: true };
