@@ -3,3 +3,4 @@ dist/
 .env
 backend/.env
 .worktrees/
+miniprogram/project.private.config.json
