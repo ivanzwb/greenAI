@@ -107,7 +107,9 @@ npm run build     # TypeScript 编译
 
 ## 文档
 
-完整索引与目录约定见 **[docs/README.md](docs/README.md)**（部署说明在 [docs/engineering/deployment.md](docs/engineering/deployment.md)）。
+- **索引与文件清单**：[docs/README.md](docs/README.md)  
+- **文档写作规范**（结构、内容、排版）：[docs/writing-standard.md](docs/writing-standard.md)  
+- **部署说明**：[docs/engineering/deployment.md](docs/engineering/deployment.md)
 
 ## 部署
 

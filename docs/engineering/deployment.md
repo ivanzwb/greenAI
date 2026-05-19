@@ -1,7 +1,5 @@
 # greenAI 部署说明
 
-> 文档索引见 [《文档中心》](../README.md)。
-
 本文覆盖 **自建 API（Fastify + Prisma + PostgreSQL）** 与 **微信小程序** 上线所需步骤。小程序不在 Docker 内构建，需在 **微信开发者工具** 中上传与发布。
 
 ---
