@@ -16,6 +16,26 @@
   border-bottom: none;
 }
 
+.settings-field--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-label--inline {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--ga-text);
+}
+
+.settings-hint-inline {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  line-height: 1.45;
+  color: var(--ga-text-muted);
+}
+
 .settings-live {
   display: flex;
   align-items: center;
@@ -184,6 +204,13 @@
   background: linear-gradient(135deg, var(--ga-brand), var(--ga-brand-mid));
 }
 
+.settings-primary.settings-primary--secondary {
+  margin-top: 16rpx;
+  background: var(--ga-bg-elevated);
+  color: var(--ga-brand);
+  border: 1rpx solid var(--ga-border-strong);
+}
+
 .settings-mono {
   display: block;
   font-size: 26rpx;
@@ -191,6 +218,14 @@
   font-family: "SF Mono", "Menlo", monospace;
   word-break: break-all;
   line-height: 1.45;
+}
+
+.settings-location-label {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.45;
+  color: var(--ga-text-secondary);
 }
 
 .settings-weather {

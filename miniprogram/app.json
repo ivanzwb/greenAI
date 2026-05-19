@@ -3,6 +3,7 @@
     "pages/index/index",
     "pages/plants/plants",
     "pages/plant-edit/plant-edit",
+    "pages/plant-plan/plant-plan",
     "pages/settings/settings",
     "pages/discover/discover",
     "pages/discover-detail/discover-detail",

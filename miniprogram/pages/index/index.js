@@ -27,8 +27,22 @@ Page({
         displayDueDate: t.dueDate
           ? String(t.dueDate).slice(0, 16).replace("T", " ")
           : "",
-        displayType: t.type === "water" ? "浇水" : t.type === "fertilize" ? "施肥" : String(t.type || ""),
-        typeClass: t.type === "water" ? "water" : t.type === "fertilize" ? "fertilize" : "other",
+        displayType:
+          t.type === "water"
+            ? "浇水"
+            : t.type === "fertilize"
+              ? "施肥"
+              : t.type === "repot"
+                ? "换盆"
+                : t.type === "inspect"
+                  ? "例行检查"
+                  : String(t.type || ""),
+        typeClass:
+          t.type === "water"
+            ? "water"
+            : t.type === "fertilize"
+              ? "fertilize"
+              : "other",
       }));
       this.setData({ tasks });
       const n = tasks.length;

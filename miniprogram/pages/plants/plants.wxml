@@ -25,6 +25,7 @@
         </view>
       </view>
       <view class="plants-card__actions">
+        <view class="plants-pill plants-pill--outline" data-id="{{item.id}}" bindtap="goPlan">计划</view>
         <view class="plants-pill plants-pill--outline" data-id="{{item.id}}" bindtap="goEdit">编辑</view>
         <view class="plants-pill plants-pill--danger" data-id="{{item.id}}" bindtap="onDelete">删除</view>
       </view>

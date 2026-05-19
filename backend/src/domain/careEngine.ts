@@ -36,6 +36,18 @@ export type PlantEnv = {
   lightLevel: LightLevel;
   /** User self-report: how dry the soil feels; nudges watering interval only. */
   soilMoistureHint?: SoilMoistureHint | null;
+  /** 长期开空调（偏干） */
+  airConditioning?: boolean | null;
+  /** 窗台主要朝向 — 南向蒸发更快 → 略缩短间隔 */
+  windowAspect?:
+    | "unknown"
+    | "north"
+    | "south"
+    | "east"
+    | "west"
+    | null;
+  /** 连续跳过浇水任务次数 — 轻量拉长间隔 */
+  waterSkipStreak?: number | null;
 };
 
 const BASE_DAYS: Record<WaterPreference, number> = {
@@ -60,6 +72,36 @@ export function soilMoistureIntervalMultiplier(
   return SOIL_INTERVAL_MULT[hint];
 }
 
+/** 窗台朝向对浇水间隔的乘子（<1 更勤浇） */
+export function windowAspectIntervalMultiplier(
+  aspect: PlantEnv["windowAspect"]
+): number {
+  switch (aspect) {
+    case "south":
+      return 0.93;
+    case "east":
+    case "west":
+      return 0.97;
+    case "north":
+      return 1.06;
+    default:
+      return 1;
+  }
+}
+
+/**
+ * 用户多次「跳过浇水」后略拉长间隔（ damped，上限约 +28%）。
+ */
+export function applyWaterSkipLearningToIntervalDays(
+  intervalDays: number,
+  streak: number | null | undefined
+): number {
+  const s = Math.max(0, Math.floor(Number(streak) || 0));
+  if (s <= 0) return Math.max(2, intervalDays);
+  const m = Math.min(1.28, 1 + Math.min(s, 8) * 0.035);
+  return Math.max(2, Math.floor(intervalDays * m));
+}
+
 export function computeWaterIntervalDays(
   preference: WaterPreference,
   env: PlantEnv
@@ -71,7 +113,16 @@ export function computeWaterIntervalDays(
   if (env.lightLevel === "low") days *= 1.05;
   days = Math.max(2, Math.floor(days));
   const soil = soilMoistureIntervalMultiplier(env.soilMoistureHint ?? null);
-  return Math.max(2, Math.floor(days * soil));
+  days = Math.max(2, Math.floor(days * soil));
+  days = Math.max(
+    2,
+    Math.floor(days * windowAspectIntervalMultiplier(env.windowAspect))
+  );
+  if (env.indoor && env.airConditioning) {
+    days = Math.max(2, Math.floor(days * 0.96));
+  }
+  days = applyWaterSkipLearningToIntervalDays(days, env.waterSkipStreak);
+  return Math.max(2, days);
 }
 
 /** Multiplier applied to *interval days*; values < 1 mean water more often (shorter interval). */
@@ -192,6 +243,30 @@ export function generateFertilizeTasks(input: {
   plantId: string;
 }): GeneratedWaterTask[] {
   return generateWaterTasks(input);
+}
+
+/** 换盆周期（天）— 计划书 v1.0「换盆时机」首版规则 */
+export const REPOT_PERIOD_DAYS = 180;
+/** 病虫害 / 长势例行检查周期 */
+export const INSPECT_PERIOD_DAYS = 120;
+
+/**
+ * 下一周期任务日：从 `origin` 起每隔 `periodDays` 一天，取第一个 >= 用户本地「asOf」当日 0 点 UTC 的日期。
+ * 用于换盆、巡检等长周期任务。
+ */
+export function nextPeriodicDueDate(
+  originUtc: Date,
+  periodDays: number,
+  asOf: Date
+): Date {
+  const start = startOfUtcDay(asOf);
+  let due = addDays(startOfUtcDay(originUtc), periodDays);
+  let guard = 0;
+  while (due < start && guard < 5000) {
+    due = addDays(due, periodDays);
+    guard++;
+  }
+  return due;
 }
 
 function startOfUtcDay(d: Date): Date {

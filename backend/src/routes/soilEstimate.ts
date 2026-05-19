@@ -6,6 +6,7 @@ import { estimateSoilMoistureFromPhoto } from "../services/soilPhotoLlm.js";
 
 const bodySchema = z.object({
   imageBase64: z.string().min(80).max(8_000_000),
+  plantId: z.string().min(1).max(80).optional(),
 });
 
 const soilEstimateRoutes: FastifyPluginAsync = async (app) => {
@@ -31,6 +32,27 @@ const soilEstimateRoutes: FastifyPluginAsync = async (app) => {
         model: llm.model,
         imageBase64: parsed.data.imageBase64,
       });
+
+      if (parsed.data.plantId) {
+        const plant = await app.prisma.plant.findFirst({
+          where: { id: parsed.data.plantId, userId: req.userId! },
+          select: { id: true },
+        });
+        if (!plant) {
+          return reply.status(404).send({ error: "plant_not_found" });
+        }
+        await app.prisma.soilRecord.create({
+          data: {
+            plantId: plant.id,
+            soilMoistureHint: estimate.soilMoistureHint,
+            soilFertilityHint: estimate.soilFertilityHint,
+            rationale: estimate.rationale,
+            wateringTip: estimate.wateringTip,
+            confidence: estimate.confidence,
+          },
+        });
+      }
+
       return estimate;
     } catch (e) {
       req.log.warn({ err: String(e) }, "soil_estimate_llm_failed");

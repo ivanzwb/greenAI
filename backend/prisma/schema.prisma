@@ -1,124 +1,353 @@
 generator client {
+
   provider = "prisma-client-js"
+
 }
+
+
 
 datasource db {
+
   provider = "postgresql"
+
   url      = env("DATABASE_URL")
+
 }
+
+
 
 enum WaterPreference {
+
   low
+
   medium
+
   high
+
 }
+
+
 
 enum LightLevel {
+
   low
+
   medium
+
   high
+
 }
+
+
 
 enum SoilMoistureHint {
+
   very_wet
+
   wet
+
   moderate
+
   dry
+
   very_dry
+
 }
+
+
+
+/// 盆土肥力视觉粗分（LLM），与湿度独立
+
+enum SoilFertilityHint {
+
+  unknown
+
+  depleted
+
+  adequate
+
+  rich
+
+}
+
+
+
+/// 窗台/主要采光朝向（用户自报）
+
+enum WindowAspect {
+
+  unknown
+
+  north
+
+  south
+
+  east
+
+  west
+
+}
+
+
 
 enum CareTaskType {
+
   water
+
   fertilize
+
+  repot
+
+  inspect
+
 }
+
+
 
 enum CareTaskStatus {
+
   pending
+
   completed
+
   skipped
+
 }
+
+
 
 model User {
+
   id        String   @id @default(cuid())
+
   openid    String   @unique
+
   timezone  String   @default("Asia/Shanghai")
+
   latitude  Float?
+
   longitude Float?
+
+  /// 逆地理可读标签（如「省 · 市」），保存定位后由服务端填充
+
+  locationLabel String?
+
+  /// 是否长期开空调（偏干环境，略缩短浇水间隔）
+
+  airConditioning Boolean @default(false)
+
+  /// 主要窗台/摆放朝向
+
+  windowAspect    WindowAspect @default(unknown)
+
   createdAt DateTime @default(now())
+
   plants    Plant[]
+
   grants    SubscribeGrant[]
+
 }
+
+
 
 model Plant {
+
   id              String          @id @default(cuid())
+
   userId          String
+
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   nickname        String
+
   speciesLabel    String
+
+  /// 识别或手填：科属（如「天南星科」）
+
+  taxonFamily     String?
+
+  /// 养护难度自评或识别推断：新手 / 进阶 / 专家
+
+  careDifficulty  String?
+
   waterPreference WaterPreference
+
   indoor          Boolean
+
   heating         Boolean
+
   lightLevel      LightLevel
+
   /// User self-report soil dryness; nudges watering interval in the care engine.
+
   soilMoistureHint SoilMoistureHint?
+
+  /// 参考每次浇水量（ml），计划书「浇水量」占位
+
+  waterAmountMl    Int?
+
+  /// 常用肥料类型说明（如「观叶植物液肥」）
+
+  fertilizerType   String?
+
+  /// 个性化注意事项（用户或运营文案）
+
+  careTips           String?
+
+  /// 连续跳过浇水次数，用于轻量拉长间隔
+
+  waterSkipStreak    Int      @default(0)
+
   createdAt       DateTime        @default(now())
+
   updatedAt       DateTime        @updatedAt
+
   carePlan        CarePlan?
+
   tasks           CareTask[]
 
+  soilRecords     SoilRecord[]
+
+
+
   @@index([userId])
+
 }
+
+
+
+model SoilRecord {
+
+  id                 String            @id @default(cuid())
+
+  plantId            String
+
+  plant              Plant             @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  soilMoistureHint   SoilMoistureHint
+
+  soilFertilityHint  SoilFertilityHint @default(unknown)
+
+  rationale          String?
+
+  wateringTip        String?
+
+  /// 模型置信度 0..1（若模型未给则为空）
+
+  confidence         Float?
+
+  createdAt          DateTime          @default(now())
+
+
+
+  @@index([plantId, createdAt])
+
+}
+
+
 
 model CarePlan {
+
   id            String   @id @default(cuid())
+
   plantId       String   @unique
+
   plant         Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
   baseIntervalDays Int
+
   horizonDays      Int   @default(14)
+
   updatedAt     DateTime @updatedAt
+
 }
+
+
 
 model CareTask {
+
   id            String         @id @default(cuid())
+
   plantId       String
+
   plant         Plant          @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
   type          CareTaskType
+
   dueDate       DateTime
+
   status        CareTaskStatus @default(pending)
+
   /// Set when status becomes `completed` (for funnel / ops metrics).
+
   completedAt   DateTime?
+
   notifySentAt  DateTime?
+
   /// After a failed subscribe send, cron skips this task until this time (exponential backoff).
+
   notifyNextAttemptAt DateTime?
+
   notifyFailCount Int          @default(0)
+
   lastError     String?
+
   createdAt     DateTime       @default(now())
+
   notifications NotificationLog[]
 
+
+
   @@index([plantId, dueDate])
+
   @@index([status, dueDate])
+
   @@index([completedAt])
+
 }
+
+
 
 model SubscribeGrant {
+
   id          String   @id @default(cuid())
+
   userId      String
+
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   templateId  String
+
   quota       Int      @default(0)
+
   updatedAt   DateTime @updatedAt
 
+
+
   @@unique([userId, templateId])
+
 }
 
+
+
 model NotificationLog {
+
   id        String   @id @default(cuid())
+
   taskId    String
+
   task      CareTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
   templateId String
+
   errcode   Int?
+
   errmsg    String?
+
   createdAt DateTime @default(now())
 
+
+
   @@index([taskId])
+
 }

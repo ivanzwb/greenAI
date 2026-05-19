@@ -3,7 +3,31 @@ import { request } from "undici";
 export type PlantIdentifyCandidate = {
   name: string;
   score: number;
+  /** 百度百科链接（若百度返回） */
+  baikeUrl?: string;
+  /** 百科摘要片段 */
+  baikeDescription?: string;
+  /** 科属（接口 category 或百科摘要中的「XX科」） */
+  taxonFamily?: string;
 };
+
+/** 从百科文案中抽取「天南星科」这类科名（启发式，取句末最短的「…科」片段）。 */
+export function extractTaxonFamilyFromText(
+  text: string | undefined
+): string | undefined {
+  if (!text || typeof text !== "string") return undefined;
+  const idx = text.lastIndexOf("科");
+  if (idx <= 0) return undefined;
+  for (let len = 12; len >= 3; len--) {
+    const start = idx - len + 1;
+    if (start < 0) continue;
+    const s = text.slice(start, idx + 1);
+    if (!/^[\u4e00-\u9fa5]+科$/.test(s)) continue;
+    if (/^(常见|一种|某些|见)/.test(s)) continue;
+    return s.slice(0, 32);
+  }
+  return undefined;
+}
 
 type TokenCache = { token: string; expiresAtMs: number };
 let tokenCache: TokenCache | null = null;
@@ -56,7 +80,7 @@ export async function identifyPlantWithBaidu(input: {
   url.searchParams.set("access_token", token);
   const form = new URLSearchParams();
   form.set("image", input.imageBase64);
-  form.set("baike_num", "0");
+  form.set("baike_num", "3");
   const res = await request(url, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded;charset=utf-8" },
@@ -65,7 +89,12 @@ export async function identifyPlantWithBaidu(input: {
   const raw = (await res.body.json()) as {
     error_code?: number;
     error_msg?: string;
-    result?: Array<{ name?: string; score?: number }>;
+    result?: Array<{
+      name?: string;
+      score?: number;
+      category?: string;
+      baike_info?: { baike_url?: string; description?: string };
+    }>;
   };
   if (raw.error_code != null && raw.error_code !== 0) {
     throw new Error(`baidu_plant_${raw.error_code}_${raw.error_msg ?? ""}`);
@@ -73,7 +102,27 @@ export async function identifyPlantWithBaidu(input: {
   const list = Array.isArray(raw.result) ? raw.result : [];
   return list
     .filter((r) => typeof r.name === "string" && typeof r.score === "number")
-    .map((r) => ({ name: String(r.name), score: Number(r.score) }))
+    .map((r) => {
+      const bk = r.baike_info;
+      const fromDesc = extractTaxonFamilyFromText(bk?.description);
+      const fromCat =
+        typeof r.category === "string" && r.category.trim().length > 0
+          ? r.category.trim().slice(0, 64)
+          : undefined;
+      const taxon = fromCat ?? fromDesc;
+      const out: PlantIdentifyCandidate = {
+        name: String(r.name),
+        score: Number(r.score),
+      };
+      if (taxon) out.taxonFamily = taxon;
+      if (bk && typeof bk.baike_url === "string" && bk.baike_url.length > 0) {
+        out.baikeUrl = bk.baike_url;
+      }
+      if (bk && typeof bk.description === "string" && bk.description.length > 0) {
+        out.baikeDescription = bk.description.slice(0, 800);
+      }
+      return out;
+    })
     .filter((r) => r.name.length > 0 && r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 8);

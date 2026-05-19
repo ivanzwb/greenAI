@@ -1,8 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { Prisma } from "@prisma/client";
+import { WindowAspect } from "@prisma/client";
 import { z } from "zod";
 import { authenticate } from "../lib/authGuard.js";
 import { isValidIanaTimeZone } from "../lib/timezone.js";
+import { reverseGeocodeLabel } from "../services/openMeteoGeocode.js";
 
 const patchBody = z
   .object({
@@ -15,13 +17,17 @@ const patchBody = z
     latitude: z.number().gte(-90).lte(90).optional(),
     longitude: z.number().gte(-180).lte(180).optional(),
     clearLocation: z.literal(true).optional(),
+    airConditioning: z.boolean().optional(),
+    windowAspect: z.nativeEnum(WindowAspect).optional(),
   })
   .superRefine((d, ctx) => {
     const hasTz = d.timezone !== undefined;
     const hasPair =
       d.latitude !== undefined && d.longitude !== undefined;
     const clear = d.clearLocation === true;
-    if (!hasTz && !hasPair && !clear) {
+    const hasEnv =
+      d.airConditioning !== undefined || d.windowAspect !== undefined;
+    if (!hasTz && !hasPair && !clear && !hasEnv) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "no_fields",
@@ -55,6 +61,9 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
         timezone: true,
         latitude: true,
         longitude: true,
+        locationLabel: true,
+        airConditioning: true,
+        windowAspect: true,
         createdAt: true,
       },
     });
@@ -69,12 +78,24 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
     const p = parsed.data;
     const data: Prisma.UserUpdateInput = {};
     if (p.timezone !== undefined) data.timezone = p.timezone;
+    if (p.airConditioning !== undefined) data.airConditioning = p.airConditioning;
+    if (p.windowAspect !== undefined) data.windowAspect = p.windowAspect;
     if (p.clearLocation === true) {
       data.latitude = null;
       data.longitude = null;
+      data.locationLabel = null;
     } else if (p.latitude !== undefined && p.longitude !== undefined) {
       data.latitude = p.latitude;
       data.longitude = p.longitude;
+      try {
+        const label = await reverseGeocodeLabel({
+          latitude: p.latitude,
+          longitude: p.longitude,
+        });
+        data.locationLabel = label;
+      } catch {
+        /* keep previous locationLabel if geocoder fails */
+      }
     }
     const user = await app.prisma.user.update({
       where: { id: req.userId! },
@@ -84,6 +105,9 @@ const usersRoutes: FastifyPluginAsync = async (app) => {
         timezone: true,
         latitude: true,
         longitude: true,
+        locationLabel: true,
+        airConditioning: true,
+        windowAspect: true,
         createdAt: true,
       },
     });

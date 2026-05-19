@@ -7,10 +7,19 @@ import {
   computeWaterIntervalDays,
   generateFertilizeTasks,
   generateWaterTasks,
+  INSPECT_PERIOD_DAYS,
+  REPOT_PERIOD_DAYS,
 } from "../domain/careEngine.js";
 import { utcRangeForUserLocalToday } from "../lib/dayRange.js";
 import { authenticate } from "../lib/authGuard.js";
+import { buildPlantEnv } from "../lib/plantCareContext.js";
 import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
+
+function addUtcDays(d: Date, n: number): Date {
+  const x = new Date(d);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x;
+}
 
 const tasksRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
@@ -52,12 +61,52 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
       },
     });
 
-    const baseInterval = computeWaterIntervalDays(task.plant.waterPreference, {
-      indoor: task.plant.indoor,
-      heating: task.plant.heating,
-      lightLevel: task.plant.lightLevel,
-      soilMoistureHint: task.plant.soilMoistureHint,
+    if (task.type === CareTaskType.water) {
+      await app.prisma.plant.update({
+        where: { id: task.plantId },
+        data: { waterSkipStreak: 0 },
+      });
+    }
+
+    if (task.type === CareTaskType.repot) {
+      await app.prisma.careTask.create({
+        data: {
+          plantId: task.plantId,
+          type: CareTaskType.repot,
+          dueDate: addUtcDays(task.dueDate, REPOT_PERIOD_DAYS),
+          status: CareTaskStatus.pending,
+        },
+      });
+      return { ok: true };
+    }
+    if (task.type === CareTaskType.inspect) {
+      await app.prisma.careTask.create({
+        data: {
+          plantId: task.plantId,
+          type: CareTaskType.inspect,
+          dueDate: addUtcDays(task.dueDate, INSPECT_PERIOD_DAYS),
+          status: CareTaskStatus.pending,
+        },
+      });
+      return { ok: true };
+    }
+
+    if (
+      task.type !== CareTaskType.water &&
+      task.type !== CareTaskType.fertilize
+    ) {
+      return { ok: true };
+    }
+
+    const owner = await app.prisma.user.findUniqueOrThrow({
+      where: { id: task.plant.userId },
+      select: { airConditioning: true, windowAspect: true },
     });
+
+    const baseInterval = computeWaterIntervalDays(
+      task.plant.waterPreference,
+      buildPlantEnv(task.plant, owner)
+    );
     const weather = await fetchUserWeatherSnapshot(
       app.prisma,
       task.plant.userId
@@ -136,13 +185,34 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
 
     const task = await app.prisma.careTask.findFirst({
       where: { id, plant: { userId: req.userId! } },
+      include: { plant: true },
     });
     if (!task) return reply.status(404).send({ error: "not_found" });
 
     req.log = req.log.child({ taskId: id, plantId: task.plantId });
 
+    const owner = await app.prisma.user.findUniqueOrThrow({
+      where: { id: req.userId! },
+      select: { airConditioning: true, windowAspect: true },
+    });
+
+    let bumpDays = 2;
+    if (task.type === CareTaskType.water) {
+      const baseInterval = computeWaterIntervalDays(
+        task.plant.waterPreference,
+        buildPlantEnv(task.plant, owner)
+      );
+      const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
+      const interval = applyWeatherToIntervalDays(baseInterval, weather);
+      bumpDays = Math.max(2, Math.min(10, Math.floor(interval * 0.14)));
+      await app.prisma.plant.update({
+        where: { id: task.plantId },
+        data: { waterSkipStreak: { increment: 1 } },
+      });
+    }
+
     const bump = new Date(task.dueDate);
-    bump.setUTCDate(bump.getUTCDate() + 2);
+    bump.setUTCDate(bump.getUTCDate() + bumpDays);
 
     await app.prisma.careTask.update({
       where: { id },
@@ -166,4 +236,3 @@ const tasksRoutes: FastifyPluginAsync = async (app) => {
 };
 
 export default tasksRoutes;
-

@@ -34,6 +34,11 @@ Page({
     if (!id) return;
     wx.navigateTo({ url: `/pages/plant-edit/plant-edit?id=${id}` });
   },
+  goPlan(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({ url: `/pages/plant-plan/plant-plan?id=${id}` });
+  },
   onDelete(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;

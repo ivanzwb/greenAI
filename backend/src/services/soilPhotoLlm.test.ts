@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getGlobalDispatcher, MockAgent, setGlobalDispatcher } from "undici";
-import { SoilMoistureHint } from "@prisma/client";
+import { SoilFertilityHint, SoilMoistureHint } from "@prisma/client";
 import { estimateSoilMoistureFromPhoto } from "./soilPhotoLlm.js";
 
 describe("estimateSoilMoistureFromPhoto", () => {
@@ -29,8 +29,10 @@ describe("estimateSoilMoistureFromPhoto", () => {
             message: {
               content: JSON.stringify({
                 soilMoistureHint: SoilMoistureHint.dry,
+                soilFertilityHint: "adequate",
                 rationale: "表土颜色浅，有细微裂纹。",
                 wateringTip: "可浇少量水，避免一次猛浇。",
+                confidence: 0.72,
               }),
             },
           },
@@ -44,6 +46,8 @@ describe("estimateSoilMoistureFromPhoto", () => {
       imageBase64: "abcd",
     });
     expect(out.soilMoistureHint).toBe(SoilMoistureHint.dry);
+    expect(out.soilFertilityHint).toBe(SoilFertilityHint.adequate);
+    expect(out.confidence).toBeCloseTo(0.72);
     expect(out.rationale.length).toBeGreaterThan(3);
   });
 });

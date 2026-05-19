@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import {
   CareTaskStatus,
@@ -13,11 +14,18 @@ import {
   computeWaterIntervalDays,
   generateFertilizeTasks,
   generateWaterTasks,
+  INSPECT_PERIOD_DAYS,
+  nextPeriodicDueDate,
+  REPOT_PERIOD_DAYS,
 } from "../domain/careEngine.js";
 import { loadConfig, isBaiduPlantIdentifyConfigured } from "../config.js";
 import { authenticate } from "../lib/authGuard.js";
+import { buildPlantEnv } from "../lib/plantCareContext.js";
 import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
-import { identifyPlantWithBaidu } from "../services/baiduPlantIdentify.js";
+import {
+  extractTaxonFamilyFromText,
+  identifyPlantWithBaidu,
+} from "../services/baiduPlantIdentify.js";
 
 const createBody = z.object({
   nickname: z.string().min(1),
@@ -27,10 +35,20 @@ const createBody = z.object({
   heating: z.boolean(),
   lightLevel: z.nativeEnum(LightLevel),
   soilMoistureHint: z.nativeEnum(SoilMoistureHint).optional(),
+  taxonFamily: z.string().max(120).optional(),
+  careDifficulty: z.string().max(40).optional(),
+  waterAmountMl: z.number().int().min(0).max(100_000).optional(),
+  fertilizerType: z.string().max(200).optional(),
+  careTips: z.string().max(4000).optional(),
 });
 
 const patchBody = createBody.partial().extend({
   soilMoistureHint: z.nativeEnum(SoilMoistureHint).nullable().optional(),
+  taxonFamily: z.string().max(120).nullable().optional(),
+  careDifficulty: z.string().max(40).nullable().optional(),
+  fertilizerType: z.string().max(200).nullable().optional(),
+  careTips: z.string().max(4000).nullable().optional(),
+  waterAmountMl: z.number().int().min(0).max(100_000).nullable().optional(),
 });
 
 const identifyBody = z.object({
@@ -39,6 +57,42 @@ const identifyBody = z.object({
 
 const plantsRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
+
+  app.get("/plants/:id/soil-records", async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const plant = await app.prisma.plant.findFirst({
+      where: { id, userId: req.userId! },
+      select: { id: true },
+    });
+    if (!plant) return reply.status(404).send({ error: "not_found" });
+    return app.prisma.soilRecord.findMany({
+      where: { plantId: id },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    });
+  });
+
+  app.get("/plants/:id/tasks", async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const plant = await app.prisma.plant.findFirst({
+      where: { id, userId: req.userId! },
+    });
+    if (!plant) return reply.status(404).send({ error: "not_found" });
+    const q = req.query as { status?: string };
+    const where: Prisma.CareTaskWhereInput = { plantId: id };
+    if (q.status === "pending") {
+      where.status = CareTaskStatus.pending;
+    } else if (q.status === "history") {
+      where.status = {
+        in: [CareTaskStatus.completed, CareTaskStatus.skipped],
+      };
+    }
+    return app.prisma.careTask.findMany({
+      where,
+      orderBy: { dueDate: "asc" },
+      take: 100,
+    });
+  });
 
   app.post("/plants/identify", async (req, reply) => {
     const config = loadConfig();
@@ -57,7 +111,11 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       if (!filtered.length) {
         return reply.status(422).send({ error: "no_plant_recognized" });
       }
-      const best = filtered[0];
+      const best = { ...filtered[0] };
+      if (!best.taxonFamily && best.baikeDescription) {
+        const t = extractTaxonFamilyFromText(best.baikeDescription);
+        if (t) best.taxonFamily = t;
+      }
       return { best, candidates: filtered };
     } catch (e) {
       req.log.warn({ err: String(e) }, "plant_identify_failed");
@@ -87,26 +145,44 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     if (!parsed.success) return reply.status(400).send({ error: "invalid_body" });
 
     const t0 = Date.now();
+    const p = parsed.data;
 
-    const baseInterval = computeWaterIntervalDays(parsed.data.waterPreference, {
-      indoor: parsed.data.indoor,
-      heating: parsed.data.heating,
-      lightLevel: parsed.data.lightLevel,
-      soilMoistureHint: parsed.data.soilMoistureHint ?? null,
+    const user = await app.prisma.user.findUniqueOrThrow({
+      where: { id: req.userId! },
+      select: { airConditioning: true, windowAspect: true },
     });
+
+    const baseInterval = computeWaterIntervalDays(
+      p.waterPreference,
+      buildPlantEnv(
+        {
+          indoor: p.indoor,
+          heating: p.heating,
+          lightLevel: p.lightLevel,
+          soilMoistureHint: p.soilMoistureHint ?? null,
+          waterSkipStreak: 0,
+        },
+        user
+      )
+    );
     const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
     const interval = applyWeatherToIntervalDays(baseInterval, weather);
 
     const plant = await app.prisma.plant.create({
       data: {
         userId: req.userId!,
-        nickname: parsed.data.nickname,
-        speciesLabel: parsed.data.speciesLabel,
-        waterPreference: parsed.data.waterPreference,
-        indoor: parsed.data.indoor,
-        heating: parsed.data.heating,
-        lightLevel: parsed.data.lightLevel,
-        soilMoistureHint: parsed.data.soilMoistureHint,
+        nickname: p.nickname,
+        speciesLabel: p.speciesLabel,
+        waterPreference: p.waterPreference,
+        indoor: p.indoor,
+        heating: p.heating,
+        lightLevel: p.lightLevel,
+        soilMoistureHint: p.soilMoistureHint,
+        taxonFamily: p.taxonFamily,
+        careDifficulty: p.careDifficulty,
+        waterAmountMl: p.waterAmountMl,
+        fertilizerType: p.fertilizerType,
+        careTips: p.careTips,
         carePlan: {
           create: { baseIntervalDays: interval, horizonDays: 14 },
         },
@@ -130,6 +206,17 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       plantId: plant.id,
     });
 
+    const repotDue = nextPeriodicDueDate(
+      plant.createdAt,
+      REPOT_PERIOD_DAYS,
+      asOf
+    );
+    const inspectDue = nextPeriodicDueDate(
+      plant.createdAt,
+      INSPECT_PERIOD_DAYS,
+      asOf
+    );
+
     await app.prisma.careTask.createMany({
       data: [
         ...generated.map((g) => ({
@@ -144,6 +231,18 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
           dueDate: g.dueDate,
           status: CareTaskStatus.pending,
         })),
+        {
+          plantId: plant.id,
+          type: CareTaskType.repot,
+          dueDate: repotDue,
+          status: CareTaskStatus.pending,
+        },
+        {
+          plantId: plant.id,
+          type: CareTaskType.inspect,
+          dueDate: inspectDue,
+          status: CareTaskStatus.pending,
+        },
       ],
     });
 
@@ -197,12 +296,15 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
     req.log = req.log.child({ plantId: id });
     const t0 = Date.now();
 
-    const baseInterval = computeWaterIntervalDays(plant.waterPreference, {
-      indoor: plant.indoor,
-      heating: plant.heating,
-      lightLevel: plant.lightLevel,
-      soilMoistureHint: plant.soilMoistureHint,
+    const user = await app.prisma.user.findUniqueOrThrow({
+      where: { id: req.userId! },
+      select: { airConditioning: true, windowAspect: true },
     });
+
+    const baseInterval = computeWaterIntervalDays(
+      plant.waterPreference,
+      buildPlantEnv(plant, user)
+    );
     const weather = await fetchUserWeatherSnapshot(app.prisma, req.userId!);
     const interval = applyWeatherToIntervalDays(baseInterval, weather);
 
@@ -230,6 +332,18 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
       plantId: id,
     });
 
+    const asOfRegen = new Date();
+    const repotDue = nextPeriodicDueDate(
+      plant.createdAt,
+      REPOT_PERIOD_DAYS,
+      asOfRegen
+    );
+    const inspectDue = nextPeriodicDueDate(
+      plant.createdAt,
+      INSPECT_PERIOD_DAYS,
+      asOfRegen
+    );
+
     await app.prisma.careTask.createMany({
       data: [
         ...generated.map((g) => ({
@@ -244,6 +358,18 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
           dueDate: g.dueDate,
           status: CareTaskStatus.pending,
         })),
+        {
+          plantId: id,
+          type: CareTaskType.repot,
+          dueDate: repotDue,
+          status: CareTaskStatus.pending,
+        },
+        {
+          plantId: id,
+          type: CareTaskType.inspect,
+          dueDate: inspectDue,
+          status: CareTaskStatus.pending,
+        },
       ],
     });
 

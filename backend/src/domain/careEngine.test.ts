@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyWaterSkipLearningToIntervalDays,
   applyWeatherToIntervalDays,
   computeFertilizeIntervalDays,
   computeWaterIntervalDays,
@@ -9,8 +10,26 @@ import {
   forecastWetBiasFromDaily,
   generateFertilizeTasks,
   generateWaterTasks,
+  INSPECT_PERIOD_DAYS,
+  nextPeriodicDueDate,
+  REPOT_PERIOD_DAYS,
   weatherIntervalMultiplier,
+  windowAspectIntervalMultiplier,
 } from "./careEngine.js";
+
+describe("windowAspectIntervalMultiplier / applyWaterSkipLearningToIntervalDays", () => {
+  it("south-facing shortens effective interval vs north", () => {
+    expect(windowAspectIntervalMultiplier("south")).toBeLessThan(
+      windowAspectIntervalMultiplier("north")
+    );
+  });
+
+  it("lengthens interval slightly after repeated skips", () => {
+    const base = 10;
+    expect(applyWaterSkipLearningToIntervalDays(base, 0)).toBe(base);
+    expect(applyWaterSkipLearningToIntervalDays(base, 3)).toBeGreaterThan(base);
+  });
+});
 
 describe("computeWaterIntervalDays", () => {
   it("uses higher frequency when heating indoors", () => {
@@ -56,6 +75,22 @@ describe("computeWaterIntervalDays", () => {
       soilMoistureHint: "very_wet",
     });
     expect(veryWet).toBeGreaterThan(baseline);
+  });
+
+  it("nudges interval when air conditioning indoors", () => {
+    const noAc = computeWaterIntervalDays("high", {
+      indoor: true,
+      heating: false,
+      lightLevel: "medium",
+      airConditioning: false,
+    });
+    const ac = computeWaterIntervalDays("high", {
+      indoor: true,
+      heating: false,
+      lightLevel: "medium",
+      airConditioning: true,
+    });
+    expect(ac).toBeLessThan(noAc);
   });
 });
 
@@ -159,6 +194,23 @@ describe("generateFertilizeTasks", () => {
     });
     expect(water.length).toBeGreaterThan(fert.length);
     expect(fert.length).toBeGreaterThan(0);
+  });
+});
+
+describe("nextPeriodicDueDate", () => {
+  it("returns first periodic due on or after asOf day", () => {
+    const origin = new Date("2025-01-01T00:00:00.000Z");
+    const asOf = new Date("2026-05-19T12:00:00.000Z");
+    const due = nextPeriodicDueDate(origin, REPOT_PERIOD_DAYS, asOf);
+    expect(due.toISOString().slice(0, 10)).toBe("2026-06-25");
+  });
+
+  it("advances multiple cycles when origin is far in the past", () => {
+    const origin = new Date("2020-01-01T00:00:00.000Z");
+    const asOf = new Date("2026-05-19T00:00:00.000Z");
+    const due = nextPeriodicDueDate(origin, INSPECT_PERIOD_DAYS, asOf);
+    expect(due >= new Date("2026-05-19T00:00:00.000Z")).toBe(true);
+    expect(due.toISOString().slice(0, 10)).toBe("2026-07-28");
   });
 });
 

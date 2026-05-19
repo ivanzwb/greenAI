@@ -8,6 +8,10 @@
       <view class="plant-identify-ring" />
     </view>
     <view class="plant-identify-cta" bindtap="onIdentifyPlant">拍照识别</view>
+    <view wx:if="{{identifyMeta}}" class="plant-identify-baike ga-card">
+      <text wx:if="{{identifyMeta.baikeDescription}}" class="plant-identify-baike__desc">{{identifyMeta.baikeDescription}}</text>
+      <view wx:if="{{identifyMeta.baikeUrl}}" class="plant-identify-baike__link" bindtap="onOpenBaike">打开百科词条</view>
+    </view>
   </view>
 
   <view class="ga-hero plant-form-hero">
@@ -56,9 +60,34 @@
       <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
         <view class="plant-picker">{{soilLabels[soilIndex]}}</view>
       </picker>
+      <text class="plant-soil-hint">盆土拍照主要辅助判断干湿手感；肥力与病虫害需结合日常观察，结论仅供参考。</text>
       <view class="plant-inline-actions">
         <view class="plant-link-btn" bindtap="onEstimateSoilPhoto">拍照估算盆土</view>
       </view>
+    </view>
+  </view>
+
+  <view class="ga-section-title">计划细节（可选）</view>
+  <view class="plant-block ga-card">
+    <view class="plant-field">
+      <text class="plant-label">科属（识别或手填）</text>
+      <input class="plant-input" placeholder="例如：天南星科" value="{{taxonFamily}}" bindinput="onTaxonInput" />
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">养护难度</text>
+      <input class="plant-input" placeholder="新手 / 进阶 / 专家" value="{{careDifficulty}}" bindinput="onCareDiffInput" />
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">参考浇水量（ml）</text>
+      <input class="plant-input" type="digit" placeholder="例如：200" value="{{waterAmountMl}}" bindinput="onWaterMlInput" />
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">常用肥料类型</text>
+      <input class="plant-input" placeholder="例如：观叶植物液肥" value="{{fertilizerType}}" bindinput="onFertInput" />
+    </view>
+    <view class="plant-field">
+      <text class="plant-label">注意事项</text>
+      <textarea class="plant-textarea" placeholder="换盆、通风、忌暴晒等个性化提醒" value="{{careTips}}" maxlength="2000" bindinput="onCareTipsInput" />
     </view>
   </view>
 

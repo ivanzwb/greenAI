@@ -5,6 +5,13 @@
     <view class="ga-hero__desc">可先勾选症状做规则参考，或使用「拍照 AI 诊断」（需服务端配置）。结果仅供参考。</view>
   </view>
 
+  <view class="diagnose-expert ga-card">
+    <text class="diagnose-expert__title">人工 / 专家</text>
+    <text class="diagnose-expert__body">复杂病虫害或整株萎蔫时，建议联系线下园艺师或平台客服，并附上清晰照片与环境说明。</text>
+    <button class="diagnose-contact-btn" open-type="contact" session-from="diagnose">联系客服</button>
+    <text class="diagnose-expert__note">需在小程序后台开通「客服」后，按钮才会接入会话。</text>
+  </view>
+
   <view wx:if="{{llmDiagnoseEnabled}}" class="diagnose-panel ga-card">
     <text class="diagnose-panel__title">拍照 AI 诊断</text>
     <text class="diagnose-panel__hint">{{llmImageLabel}}</text>

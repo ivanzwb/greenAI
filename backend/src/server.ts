@@ -6,6 +6,7 @@ import prismaPlugin from "./plugins/prisma.js";
 import authRoutes from "./routes/auth.js";
 import diagnoseRoutes from "./routes/diagnose.js";
 import healthRoutes from "./routes/health.js";
+import knowledgeRoutes from "./routes/knowledge.js";
 import internalJobsRoutes from "./routes/internalJobs.js";
 import plantsRoutes from "./routes/plants.js";
 import soilEstimateRoutes from "./routes/soilEstimate.js";
@@ -29,6 +30,7 @@ const app = Fastify({
 await app.register(cors, { origin: true });
 await app.register(prismaPlugin);
 await app.register(healthRoutes);
+await app.register(knowledgeRoutes);
 await app.register(authRoutes);
 await app.register(usersRoutes);
 await app.register(weatherRoutes);

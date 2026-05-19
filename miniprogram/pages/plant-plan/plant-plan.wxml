@@ -1,0 +1,25 @@
+<view class="ga-page plant-plan">
+  <view class="ga-hero plant-plan-hero">
+    <text class="ga-hero__eyebrow">计划</text>
+    <view class="ga-hero__title">待办与历史</view>
+    <view class="ga-hero__desc">浇水、施肥与换盆/巡检等长周期任务；编辑植物并保存后会重算近期浇水与施肥排期。</view>
+  </view>
+
+  <view wx:if="{{loadError}}" class="plant-plan-muted ga-card">{{loadError}}</view>
+
+  <view wx:else class="plant-plan-actions ga-card">
+    <view class="plant-plan-refresh" bindtap="onRefresh">刷新列表</view>
+  </view>
+
+  <view wx:if="{{!loadError && tasks.length === 0}}" class="plant-plan-empty ga-card">暂无任务记录</view>
+
+  <block wx:for="{{tasks}}" wx:key="id">
+    <view class="plant-plan-row ga-card">
+      <view class="plant-plan-row__head">
+        <text class="plant-plan-type">{{item.displayType}}</text>
+        <text class="plant-plan-status">{{item.displayStatus}}</text>
+      </view>
+      <text class="plant-plan-due">计划日：{{item.displayDue}}</text>
+    </view>
+  </block>
+</view>

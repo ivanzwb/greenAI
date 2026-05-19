@@ -15,9 +15,17 @@ const ZONES = [
   "America/Los_Angeles",
 ];
 
+const WINDOW_ASPECT_KEYS = ["unknown", "north", "south", "east", "west"];
+const WINDOW_ASPECT_LABELS = ["未知", "北向", "南向", "东向", "西向"];
+
 function locSummary(me) {
   if (!me || me.latitude == null || me.longitude == null) return "未设置";
   return `${Number(me.latitude).toFixed(4)}, ${Number(me.longitude).toFixed(4)}`;
+}
+
+function locationReadable(me) {
+  const label = me && me.locationLabel != null ? String(me.locationLabel).trim() : "";
+  return label.length > 0 ? label : "";
 }
 
 function formatForecastDay(d) {
@@ -73,12 +81,17 @@ Page({
     labels: [...ZONES],
     tzIndex: 0,
     locSummary: "",
+    locationReadable: "",
     needLocationTip: false,
     weatherLine: "",
     forecastHint: "",
     forecastDays: [],
     currentLive: null,
     liveWeatherKind: "cloud",
+    aspectKeys: WINDOW_ASPECT_KEYS,
+    aspectLabels: WINDOW_ASPECT_LABELS,
+    aspectIndex: 0,
+    airConditioning: false,
   },
   async onShow() {
     await this.loadMeAndWeather();
@@ -94,11 +107,18 @@ Page({
         idx = 0;
       }
       const hasLoc = me.latitude != null && me.longitude != null;
+      let aspectIndex = 0;
+      const wa = me.windowAspect || "unknown";
+      const ai = WINDOW_ASPECT_KEYS.indexOf(wa);
+      if (ai >= 0) aspectIndex = ai;
       this.setData({
         labels,
         tzIndex: idx,
         locSummary: locSummary(me),
+        locationReadable: locationReadable(me),
         needLocationTip: !hasLoc,
+        airConditioning: Boolean(me.airConditioning),
+        aspectIndex,
         weatherLine: "",
         forecastHint: "",
         forecastDays: [],
@@ -153,6 +173,29 @@ Page({
   },
   onTzChange(e) {
     this.setData({ tzIndex: Number(e.detail.value) });
+  },
+  onAspectChange(e) {
+    this.setData({ aspectIndex: Number(e.detail.value) });
+  },
+  onAcChange(e) {
+    this.setData({ airConditioning: e.detail.value });
+  },
+  async onSaveEnv() {
+    const aspect = this.data.aspectKeys[this.data.aspectIndex];
+    try {
+      await request({
+        path: "/users/me",
+        method: "PATCH",
+        data: {
+          airConditioning: this.data.airConditioning,
+          windowAspect: aspect,
+        },
+      });
+      wx.showToast({ title: "环境偏好已保存" });
+      this.loadMeAndWeather();
+    } catch (e) {
+      wx.showToast({ title: "保存失败", icon: "none" });
+    }
   },
   async onSave() {
     const tz = this.data.labels[this.data.tzIndex];

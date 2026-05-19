@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { Agent, MockAgent, setGlobalDispatcher } from "undici";
 import {
+  extractTaxonFamilyFromText,
   getBaiduAccessToken,
   identifyPlantWithBaidu,
   resetBaiduPlantIdentifyCache,
@@ -29,7 +30,15 @@ describe("baiduPlantIdentify (mocked HTTP)", () => {
       })
       .reply(200, {
         result: [
-          { name: "绿萝", score: 0.41 },
+          {
+            name: "绿萝",
+            score: 0.41,
+            category: "天南星科",
+            baike_info: {
+              baike_url: "https://baike.baidu.com/item/%E7%BB%BF%E8%90%9D",
+              description: "天南星科常绿藤本。",
+            },
+          },
           { name: "万年青", score: 0.82 },
         ],
       });
@@ -41,6 +50,10 @@ describe("baiduPlantIdentify (mocked HTTP)", () => {
     });
     expect(out[0].name).toBe("万年青");
     expect(out[0].score).toBe(0.82);
+    expect(out[0].baikeUrl).toBeUndefined();
+    expect(out[1].baikeUrl).toContain("baike.baidu.com");
+    expect(out[1].baikeDescription).toContain("天南星科");
+    expect(out[1].taxonFamily).toBe("天南星科");
     expect(out).toHaveLength(2);
 
     await agent.close();
@@ -58,5 +71,10 @@ describe("baiduPlantIdentify (mocked HTTP)", () => {
       });
     await expect(getBaiduAccessToken("bad", "bad")).rejects.toThrow(/baidu_token/);
     await agent.close();
+  });
+
+  it("extractTaxonFamilyFromText finds 科 in description", () => {
+    expect(extractTaxonFamilyFromText("常见天南星科观叶植物。")).toBe("天南星科");
+    expect(extractTaxonFamilyFromText(undefined)).toBeUndefined();
   });
 });

@@ -39,6 +39,12 @@ Page({
     soilIndex: 0,
     soilLabels: SOIL_LABELS,
     knowledgeLink: null,
+    identifyMeta: null,
+    taxonFamily: "",
+    careDifficulty: "",
+    waterAmountMl: "",
+    fertilizerType: "",
+    careTips: "",
   },
   onLoad(options) {
     if (options.id) {
@@ -54,6 +60,14 @@ Page({
       this.setData({
         nickname: p.nickname || "",
         speciesLabel: p.speciesLabel || "",
+        taxonFamily: p.taxonFamily || "",
+        careDifficulty: p.careDifficulty || "",
+        waterAmountMl:
+          p.waterAmountMl != null && p.waterAmountMl !== ""
+            ? String(p.waterAmountMl)
+            : "",
+        fertilizerType: p.fertilizerType || "",
+        careTips: p.careTips || "",
         waterIndex: prefIndex(WATER_RANGE, p.waterPreference),
         indoor: Boolean(p.indoor),
         heating: Boolean(p.heating),
@@ -63,6 +77,7 @@ Page({
           p.speciesLabel || "",
           p.nickname || ""
         ),
+        identifyMeta: null,
       });
       wx.setNavigationBarTitle({ title: "编辑植物" });
     } catch (e) {
@@ -102,6 +117,34 @@ Page({
       url: `/pages/discover-detail/discover-detail?id=${encodeURIComponent(k.id)}`,
     });
   },
+  onTaxonInput(e) {
+    this.setData({ taxonFamily: e.detail.value || "" });
+  },
+  onCareDiffInput(e) {
+    this.setData({ careDifficulty: e.detail.value || "" });
+  },
+  onWaterMlInput(e) {
+    this.setData({ waterAmountMl: e.detail.value || "" });
+  },
+  onFertInput(e) {
+    this.setData({ fertilizerType: e.detail.value || "" });
+  },
+  onCareTipsInput(e) {
+    this.setData({ careTips: e.detail.value || "" });
+  },
+  onOpenBaike() {
+    const url =
+      this.data.identifyMeta && this.data.identifyMeta.baikeUrl
+        ? String(this.data.identifyMeta.baikeUrl)
+        : "";
+    if (!url) return;
+    wx.setClipboardData({
+      data: url,
+      success: () => {
+        wx.showToast({ title: "百科链接已复制", icon: "none" });
+      },
+    });
+  },
   onEstimateSoilPhoto() {
     wx.chooseMedia({
       count: 1,
@@ -119,19 +162,34 @@ Page({
               const data = await request({
                 path: "/soil/estimate-photo",
                 method: "POST",
-                data: { imageBase64: fileRes.data },
+                data: {
+                  imageBase64: fileRes.data,
+                  ...(this.data.plantId
+                    ? { plantId: this.data.plantId }
+                    : {}),
+                },
               });
               const hint = data && data.soilMoistureHint;
               const idx = SOIL_VALUES.indexOf(hint);
               if (idx >= 1) {
                 this.setData({ soilIndex: idx });
               }
+              const fertMap = {
+                unknown: "肥力未判",
+                depleted: "偏瘦",
+                adequate: "肥力适中",
+                rich: "偏肥",
+              };
+              const fert = data && data.soilFertilityHint;
+              const fertLabel = fert ? fertMap[fert] || fert : "";
               const tip =
                 (data && data.wateringTip) ||
                 (data && data.rationale) ||
                 "已更新盆土选项";
+              const extra = fertLabel ? `（${fertLabel}）` : "";
               wx.showToast({
-                title: tip.slice(0, 18) + (tip.length > 18 ? "…" : ""),
+                title: (tip.slice(0, 14) + extra).slice(0, 22) +
+                  (tip.length > 14 ? "…" : ""),
                 icon: "none",
                 duration: 2800,
               });
@@ -183,10 +241,19 @@ Page({
               const nick = (this.data.nickname || "").trim();
               const species = best.name || "";
               const link = bestKnowledgeMatch(species, nick || species);
+              const meta =
+                best.baikeDescription || best.baikeUrl
+                  ? {
+                      baikeDescription: best.baikeDescription || "",
+                      baikeUrl: best.baikeUrl || "",
+                    }
+                  : null;
               this.setData({
                 speciesLabel: species,
                 nickname: nick || species,
+                taxonFamily: best.taxonFamily || this.data.taxonFamily || "",
                 knowledgeLink: link,
+                identifyMeta: meta,
               });
               wx.showToast({ title: "已填入品种", icon: "success" });
             } catch (e) {
@@ -217,6 +284,11 @@ Page({
       plantId,
       nickname,
       speciesLabel,
+      taxonFamily,
+      careDifficulty,
+      waterAmountMl,
+      fertilizerType,
+      careTips,
       waterIndex,
       indoor,
       heating,
@@ -238,6 +310,18 @@ Page({
       lightLevel,
       soilMoistureHint: SOIL_VALUES[soilIndex],
     };
+    const tf = (taxonFamily || "").trim();
+    if (tf) body.taxonFamily = tf;
+    const cd = (careDifficulty || "").trim();
+    if (cd) body.careDifficulty = cd;
+    const wm = String(waterAmountMl || "").trim();
+    if (wm && Number.isFinite(Number(wm)) && Number(wm) > 0) {
+      body.waterAmountMl = Math.round(Number(wm));
+    }
+    const ft = (fertilizerType || "").trim();
+    if (ft) body.fertilizerType = ft;
+    const ct = (careTips || "").trim();
+    if (ct) body.careTips = ct;
     try {
       if (plantId) {
         await request({
