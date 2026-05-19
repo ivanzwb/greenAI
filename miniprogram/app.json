@@ -1,8 +1,9 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/plants/plants",
+    "pages/identify/identify",
     "pages/discover/discover",
+    "pages/plants/plants",
     "pages/settings/settings",
     "pages/plant-edit/plant-edit",
     "pages/plant-plan/plant-plan",
@@ -22,14 +23,20 @@
         "selectedIconPath": "images/tab-active.png"
       },
       {
-        "pagePath": "pages/plants/plants",
-        "text": "我的",
+        "pagePath": "pages/identify/identify",
+        "text": "识别",
         "iconPath": "images/tab.png",
         "selectedIconPath": "images/tab-active.png"
       },
       {
         "pagePath": "pages/discover/discover",
-        "text": "发现",
+        "text": "知识",
+        "iconPath": "images/tab.png",
+        "selectedIconPath": "images/tab-active.png"
+      },
+      {
+        "pagePath": "pages/plants/plants",
+        "text": "我的",
         "iconPath": "images/tab.png",
         "selectedIconPath": "images/tab-active.png"
       }

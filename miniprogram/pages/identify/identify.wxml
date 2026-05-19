@@ -1,0 +1,54 @@
+<view class="ga-page identify">
+  <view class="ga-hero identify-hero">
+    <text class="ga-hero__eyebrow">智能工具</text>
+    <view class="ga-hero__title">识别与诊断</view>
+    <view class="ga-hero__desc">拍照识花、AI 诊断、症状对照——多角度辅助养护决策。</view>
+  </view>
+
+  <!-- 拍照识花 -->
+  <view class="identify-card ga-card" bindtap="onIdentify">
+    <view class="identify-card__icon identify-card__icon--green">🌼</view>
+    <view class="identify-card__body">
+      <text class="identify-card__title">拍照识花</text>
+      <text class="identify-card__desc">拍摄植物照片，AI 智能识别品种</text>
+    </view>
+    <text class="identify-card__arrow">›</text>
+  </view>
+
+  <!-- 拍照诊断 -->
+  <view class="identify-card ga-card" bindtap="onDiagnosePhoto">
+    <view class="identify-card__icon identify-card__icon--amber">🔍</view>
+    <view class="identify-card__body">
+      <text class="identify-card__title">拍照诊断</text>
+      <text class="identify-card__desc">上传病斑/虫害/萎蔫照片，AI 分析原因</text>
+    </view>
+    <text class="identify-card__arrow">›</text>
+  </view>
+
+  <!-- 症状诊断 -->
+  <view class="identify-card ga-card" bindtap="onDiagnoseSymptom">
+    <view class="identify-card__icon identify-card__icon--blue">📋</view>
+    <view class="identify-card__body">
+      <text class="identify-card__title">症状诊断</text>
+      <text class="identify-card__desc">勾选症状，获取规则匹配的养护建议</text>
+    </view>
+    <text class="identify-card__arrow">›</text>
+  </view>
+
+  <!-- 结果展示区域 -->
+  <view wx:if="{{identifyResult}}" class="identify-result ga-card">
+    <text class="identify-result__title">识别结果</text>
+    <text class="identify-result__species">品种：{{identifyResult.speciesLabel}}</text>
+    <text wx:if="{{identifyResult.confidence}}" class="identify-result__confidence">
+      置信度：{{identifyResult.confidence}}%
+    </text>
+    <text wx:if="{{identifyResult.desc}}" class="identify-result__desc">
+      {{identifyResult.desc}}
+    </text>
+  </view>
+
+  <view wx:if="{{diagnoseResult}}" class="identify-result ga-card">
+    <text class="identify-result__title">诊断结果</text>
+    <text class="identify-result__body">{{diagnoseResult}}</text>
+  </view>
+</view>
