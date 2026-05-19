@@ -4,6 +4,7 @@
   "appid": "wx6a0967cbb4f6374d",
   "projectname": "greenai-miniprogram",
   "setting": {
+    "urlCheck": false,
     "es6": true,
     "postcss": false,
     "compileWorklet": false,
