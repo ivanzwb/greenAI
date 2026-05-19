@@ -19,26 +19,26 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "images/tab.png",
-        "selectedIconPath": "images/tab-active.png"
+        "iconPath": "images/tab-icons/home-unselected.png",
+        "selectedIconPath": "images/tab-icons/home-selected.png"
       },
       {
         "pagePath": "pages/identify/identify",
         "text": "识别",
-        "iconPath": "images/tab.png",
-        "selectedIconPath": "images/tab-active.png"
+        "iconPath": "images/tab-icons/identify-unselected.png",
+        "selectedIconPath": "images/tab-icons/identify-selected.png"
       },
       {
         "pagePath": "pages/discover/discover",
         "text": "知识",
-        "iconPath": "images/tab.png",
-        "selectedIconPath": "images/tab-active.png"
+        "iconPath": "images/tab-icons/knowledge-unselected.png",
+        "selectedIconPath": "images/tab-icons/knowledge-selected.png"
       },
       {
         "pagePath": "pages/plants/plants",
         "text": "我的",
-        "iconPath": "images/tab.png",
-        "selectedIconPath": "images/tab-active.png"
+        "iconPath": "images/tab-icons/me-unselected.png",
+        "selectedIconPath": "images/tab-icons/me-selected.png"
       }
     ]
   },
