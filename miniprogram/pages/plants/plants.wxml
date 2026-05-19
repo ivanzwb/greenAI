@@ -99,9 +99,5 @@
       <text class="settings-weather">{{weatherLine}}</text>
     </view>
     <view wx:if="{{forecastHint}}" class="settings-hint">{{forecastHint}}</view>
-    <view wx:if="{{forecastDays.length}}" class="settings-forecast-head">未来 3 天预报（按已保存时区）</view>
-    <block wx:for="{{forecastDays}}" wx:key="date">
-      <text class="settings-forecast-row">{{item.line}}</text>
-    </block>
   </view>
 </view>
