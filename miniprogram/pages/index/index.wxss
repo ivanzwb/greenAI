@@ -21,7 +21,7 @@
   justify-content: center;
   gap: 8rpx;
   padding: 14rpx 8rpx;
-  border-radius: 999rpx;
+  border-radius: var(--ga-radius-sm);
   background: var(--ga-bg-elevated);
   border: 1rpx solid var(--ga-border-strong);
   color: var(--ga-text);
@@ -46,6 +46,7 @@
   background: var(--ga-brand);
   color: #f4faf6;
   border-color: var(--ga-brand);
+  border-radius: var(--ga-radius-sm);
   font-size: 26rpx;
   padding: 18rpx 24rpx;
 }
