@@ -9,6 +9,10 @@ export type PlantIdentifyCandidate = {
   baikeDescription?: string;
   /** 科属（接口 category 或百科摘要中的「XX科」） */
   taxonFamily?: string;
+  /** 自建品种表或 LLM 推断的养护难度 */
+  careDifficulty?: string;
+  /** 自建品种表或 LLM 推断的养护要点摘要 */
+  careSummary?: string;
 };
 
 /** 从百科文案中抽取「天南星科」这类科名（启发式，取句末最短的「…科」片段）。 */

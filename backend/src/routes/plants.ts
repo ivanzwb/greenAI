@@ -18,7 +18,7 @@ import {
   nextPeriodicDueDate,
   REPOT_PERIOD_DAYS,
 } from "../domain/careEngine.js";
-import { loadConfig, isBaiduPlantIdentifyConfigured } from "../config.js";
+import { loadConfig, isBaiduPlantIdentifyConfigured, resolveDiagnoseLlmSettings } from "../config.js";
 import { authenticate } from "../lib/authGuard.js";
 import { buildPlantEnv } from "../lib/plantCareContext.js";
 import { fetchUserWeatherSnapshot } from "../lib/userWeather.js";
@@ -26,6 +26,7 @@ import {
   extractTaxonFamilyFromText,
   identifyPlantWithBaidu,
 } from "../services/baiduPlantIdentify.js";
+import { findOrCreateSpeciesProfile } from "../services/speciesProfileService.js";
 
 const createBody = z.object({
   nickname: z.string().min(1),
@@ -116,7 +117,34 @@ const plantsRoutes: FastifyPluginAsync = async (app) => {
         const t = extractTaxonFamilyFromText(best.baikeDescription);
         if (t) best.taxonFamily = t;
       }
-      return { best, candidates: filtered };
+      const llm = resolveDiagnoseLlmSettings(config);
+      const { profile, source } = await findOrCreateSpeciesProfile(
+        app.prisma,
+        {
+          displayName: best.name,
+          taxonFamilyHint: best.taxonFamily,
+          baikeDescription: best.baikeDescription,
+        },
+        llm
+      );
+      req.log.info(
+        { speciesProfileSource: source, hasProfile: Boolean(profile) },
+        "species_profile_resolve"
+      );
+      const bestOut = {
+        ...best,
+        taxonFamily: best.taxonFamily ?? profile?.taxonFamily ?? undefined,
+        ...(profile?.careDifficulty
+          ? { careDifficulty: profile.careDifficulty }
+          : {}),
+        ...(profile?.careSummary ? { careSummary: profile.careSummary } : {}),
+      };
+      return {
+        best: bestOut,
+        candidates: filtered,
+        speciesProfile: profile,
+        speciesProfileSource: source,
+      };
     } catch (e) {
       req.log.warn({ err: String(e) }, "plant_identify_failed");
       return reply.status(502).send({ error: "plant_identify_upstream" });

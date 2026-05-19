@@ -248,13 +248,20 @@ Page({
                       baikeUrl: best.baikeUrl || "",
                     }
                   : null;
-              this.setData({
+              const patch = {
                 speciesLabel: species,
                 nickname: nick || species,
                 taxonFamily: best.taxonFamily || this.data.taxonFamily || "",
                 knowledgeLink: link,
                 identifyMeta: meta,
-              });
+              };
+              if (best.careDifficulty) {
+                patch.careDifficulty = String(best.careDifficulty);
+              }
+              if (best.careSummary) {
+                patch.careTips = String(best.careSummary);
+              }
+              this.setData(patch);
               wx.showToast({ title: "已填入品种", icon: "success" });
             } catch (e) {
               const code = e && e.statusCode;

@@ -351,3 +351,44 @@ model NotificationLog {
   @@index([taskId])
 
 }
+
+
+
+enum SpeciesProfileSource {
+
+  llm
+
+  manual
+
+}
+
+
+
+/// 自建品种养护档案：先按 nameKey 命中，未命中可由 LLM 推断并落库
+
+model SpeciesProfile {
+
+  id             String               @id @default(cuid())
+
+  /// 归一化检索键（trim + Unicode NFKC + 小写）
+
+  nameKey        String               @unique
+
+  /// 与识别结果一致的主展示名
+
+  displayName    String
+
+  taxonFamily    String?
+
+  careDifficulty String?
+
+  careSummary    String?
+
+  source         SpeciesProfileSource   @default(llm)
+
+  createdAt      DateTime               @default(now())
+
+  updatedAt      DateTime               @updatedAt
+
+}
+
