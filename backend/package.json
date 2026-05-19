@@ -21,7 +21,7 @@
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.2.0",
     "fastify": "^4.28.1",
-    "fastify-plugin": "^4.5.1",
+    "fastify-plugin": "^5.1.0",
     "geo-tz": "^8.1.7",
     "jsonwebtoken": "^9.0.2",
     "undici": "^6.21.0",
