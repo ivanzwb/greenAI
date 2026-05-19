@@ -5,6 +5,16 @@
     <view class="ga-hero__desc">浇水、施肥与换盆/巡检等长周期任务；编辑植物并保存后会重算近期浇水与施肥排期。</view>
   </view>
 
+  <view wx:if="{{plantId && (soilCardLines.length || soilCardHint)}}" class="plant-plan-soil ga-card">
+    <text class="plant-plan-soil__kicker">盆土</text>
+    <view wx:if="{{soilPlantTitle}}" class="plant-plan-soil__plant">{{soilPlantTitle}}</view>
+    <text class="plant-plan-soil__title">土壤摘要</text>
+    <block wx:for="{{soilCardLines}}" wx:key="id">
+      <text class="plant-plan-soil__line">{{item.text}}</text>
+    </block>
+    <text wx:if="{{soilCardHint}}" class="plant-plan-soil__hint">{{soilCardHint}}</text>
+  </view>
+
   <view wx:if="{{loadError}}" class="plant-plan-muted ga-card">{{loadError}}</view>
 
   <view wx:else class="plant-plan-actions ga-card">

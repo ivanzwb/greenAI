@@ -93,6 +93,21 @@ jobs:
           touch .env
           docker compose -f deploy/docker-compose.prod.yml config --quiet
 
+  openspec-docs:
+    name: OpenSpec parity / backlog docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify parity & backlog doc anchors
+        run: node --test scripts/parity-docs-anchor.test.mjs
+
   miniprogram-json:
     name: Miniprogram JSON
     runs-on: ubuntu-latest
@@ -127,10 +142,11 @@ jobs:
     name: CI (all required checks)
     runs-on: ubuntu-latest
     if: always()
-    needs: [backend, docker-compose, miniprogram-json]
+    needs: [backend, docker-compose, openspec-docs, miniprogram-json]
     steps:
       - name: Require all jobs successful
         run: |
           test "${{ needs.backend.result }}" = "success"
           test "${{ needs.docker-compose.result }}" = "success"
+          test "${{ needs.openspec-docs.result }}" = "success"
           test "${{ needs.miniprogram-json.result }}" = "success"

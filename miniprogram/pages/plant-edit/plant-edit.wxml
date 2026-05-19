@@ -65,6 +65,13 @@
         <view class="plant-link-btn" bindtap="onEstimateSoilPhoto">拍照估算盆土</view>
       </view>
     </view>
+    <view wx:if="{{soilRecords.length}}" class="plant-soil-records">
+      <text class="plant-soil-records__title">最近盆土拍照记录</text>
+      <view wx:for="{{soilRecords}}" wx:key="id" class="plant-soil-records__row">
+        <text class="plant-soil-records__meta">{{item.when}} · {{item.moistureLabel}}<text wx:if="{{item.fertilityLabel}}"> · {{item.fertilityLabel}}</text></text>
+        <text wx:if="{{item.tip}}" class="plant-soil-records__tip">{{item.tip}}</text>
+      </view>
+    </view>
   </view>
 
   <view class="ga-section-title">计划细节（可选）</view>

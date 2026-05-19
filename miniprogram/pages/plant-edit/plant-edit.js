@@ -13,6 +13,29 @@ const SOIL_LABELS = ["不填（默认）", "很湿", "偏湿", "适中", "偏干
 /** API values; index 0 = omit / null */
 const SOIL_VALUES = [null, "very_wet", "wet", "moderate", "dry", "very_dry"];
 
+const SOIL_HINT_LABELS = {
+  very_wet: "很湿",
+  wet: "偏湿",
+  moderate: "适中",
+  dry: "偏干",
+  very_dry: "很干",
+};
+
+const FERTILITY_LABELS = {
+  unknown: "肥力未判",
+  depleted: "偏瘦",
+  adequate: "肥力适中",
+  rich: "偏肥",
+};
+
+function formatSoilRecordWhen(iso) {
+  if (!iso) return "";
+  const s = String(iso);
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2})/);
+  if (m) return `${m[1]} ${m[2]}`;
+  return s.slice(0, 16);
+}
+
 function prefIndex(range, value) {
   const i = range.indexOf(value);
   return i >= 0 ? i : 1;
@@ -53,6 +76,7 @@ Page({
     waterAmountMl: "",
     fertilizerType: "",
     careTips: "",
+    soilRecords: [],
   },
   onLoad(options) {
     if (options.id) {
@@ -88,10 +112,42 @@ Page({
         identifyMeta: null,
       });
       wx.setNavigationBarTitle({ title: "编辑植物" });
+      this.loadSoilRecords(id);
       this.enrichKnowledgeLinkFromApi();
     } catch (e) {
       wx.showToast({ title: "加载失败", icon: "none" });
       setTimeout(() => wx.navigateBack(), 1500);
+    }
+  },
+  async loadSoilRecords(plantId) {
+    if (!plantId) {
+      this.setData({ soilRecords: [] });
+      return;
+    }
+    try {
+      const list = await request({
+        path: `/plants/${plantId}/soil-records`,
+        method: "GET",
+      });
+      const arr = Array.isArray(list) ? list : [];
+      const rows = arr.slice(0, 8).map((r) => {
+        const tipRaw = (r && (r.wateringTip || r.rationale)) || "";
+        const tip =
+          tipRaw.length > 120 ? `${tipRaw.slice(0, 120)}…` : tipRaw;
+        const mh = r && r.soilMoistureHint;
+        const fh = r && r.soilFertilityHint;
+        return {
+          id: r.id,
+          when: formatSoilRecordWhen(r.createdAt),
+          moistureLabel: SOIL_HINT_LABELS[mh] || mh || "",
+          fertilityLabel:
+            fh && fh !== "unknown" ? FERTILITY_LABELS[fh] || fh : "",
+          tip,
+        };
+      });
+      this.setData({ soilRecords: rows });
+    } catch (_) {
+      this.setData({ soilRecords: [] });
     }
   },
   enrichKnowledgeLinkFromApiDebounced() {
@@ -241,6 +297,9 @@ Page({
                 icon: "none",
                 duration: 2800,
               });
+              if (this.data.plantId) {
+                void this.loadSoilRecords(this.data.plantId);
+              }
             } catch (e) {
               const code = e && e.statusCode;
               if (code === 503) {

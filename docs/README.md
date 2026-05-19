@@ -32,6 +32,8 @@
 | [knowledge/knowledge-base-data-sourcing.md](./knowledge/knowledge-base-data-sourcing.md) | 设计 | 知识数据来源与进库治理 |
 | [superpowers/specs/2026-05-18-wechat-mp-care-mvp-design.md](./superpowers/specs/2026-05-18-wechat-mp-care-mvp-design.md) | 规格 | MVP 工程设计 |
 | [superpowers/plans/2026-05-18-wechat-mp-care-mvp.md](./superpowers/plans/2026-05-18-wechat-mp-care-mvp.md) | 计划 | MVP 任务与检查点 |
+| [superpowers/plans/2026-05-19-business-plan-parity-backlog-spec.md](./superpowers/plans/2026-05-19-business-plan-parity-backlog-spec.md) | 计划 | 商业计划 parity + backlog 规格落地（OpenSpec） |
+| [../openspec/changes/business-plan-detailed-2026/proposal.md](../openspec/changes/business-plan-detailed-2026/proposal.md) | OpenSpec | 《详细计划书》v1.0 ↔ 仓库对照与 backlog（工程解释层） |
 | [miniprogram-design/README.md](./miniprogram-design/README.md) | 设计 | 小程序示意稿约定与文件对照 |
 | [reference/plant-care-architecture.svg](./reference/plant-care-architecture.svg) | 素材 | 架构示意（矢量） |
 | [reference/plant-care-architecture.jpg](./reference/plant-care-architecture.jpg) | 素材 | 架构示意（位图） |
@@ -51,6 +53,7 @@
 | 场景 | 阅读 |
 |------|------|
 | 接手开发 | 根目录 `README.md` → `superpowers/specs/...design.md` → `superpowers/plans/...mvp.md` |
+| 商业计划书与代码对齐 | `openspec/changes/business-plan-detailed-2026/`（见上表 proposal 链接） |
 | 部署上线 | `engineering/deployment.md` |
 | 知识库 | `knowledge/knowledge-base-layered-search-design.md` → `knowledge-base-data-sourcing.md` |
 | 小程序视觉 | `miniprogram-design/README.md` |
@@ -61,6 +64,7 @@
 ## 4. 自动化路径（勿随意改名）
 
 - `docs/superpowers/specs/2026-05-18-wechat-mp-care-mvp-design.md`
-- `docs/superpowers/plans/2026-05-18-wechat-mp-care-mvp.md`  
+- `docs/superpowers/plans/2026-05-18-wechat-mp-care-mvp.md`
+- `scripts/parity-docs-anchor.test.mjs`（商业计划 parity/backlog 文档锚点；根目录 `npm run verify:openspec-docs`）
 
 变更时同步 `.cursor/rules/verify-ship.mdc` 与 CI 中引用。
