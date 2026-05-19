@@ -1,43 +1,53 @@
 .index .index-toolbar {
-  padding: 20rpx 24rpx 12rpx;
+  padding: 24rpx;
   margin-bottom: var(--ga-space-lg);
 }
 
 .index-toolbar__row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  margin-bottom: 12rpx;
+  gap: 12rpx;
 }
 
-.index-toolbar__row:last-child {
-  margin-bottom: 0;
+.index-toolbar__row--cta {
+  margin-top: 16rpx;
 }
 
-.index-chip {
-  padding: 14rpx 28rpx;
+/* ── icon button ── */
+
+.index-ibtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 14rpx 8rpx;
   border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 600;
+  background: var(--ga-bg-elevated);
   border: 1rpx solid var(--ga-border-strong);
   color: var(--ga-text);
-  background: var(--ga-bg-elevated);
+  font-weight: 600;
+  font-size: 22rpx;
+  text-align: center;
+  line-height: 1.2;
 }
 
-.index-chip--ghost {
-  background: var(--ga-bg-elevated);
+.index-ibtn__icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
 }
 
-.index-chip--accent {
-  background: var(--ga-accent-soft);
-  border-color: rgba(184, 134, 11, 0.35);
-  color: #6b5210;
+.index-ibtn__label {
+  white-space: nowrap;
 }
 
-.index-chip--brand {
+/* ── brand CTA ── */
+
+.index-ibtn--brand {
   background: var(--ga-brand);
   color: #f4faf6;
   border-color: var(--ga-brand);
+  font-size: 26rpx;
+  padding: 18rpx 24rpx;
 }
 
 .index-empty {

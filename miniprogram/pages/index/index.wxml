@@ -7,13 +7,25 @@
 
   <view class="index-toolbar ga-card">
     <view class="index-toolbar__row">
-      <view class="index-chip index-chip--ghost" bindtap="onRefresh">刷新</view>
-      <view class="index-chip index-chip--accent" bindtap="onSubscribe">订阅提醒</view>
-      <view class="index-chip index-chip--ghost" bindtap="goSettings">设置</view>
+      <view class="index-ibtn" bindtap="onRefresh">
+        <text class="index-ibtn__icon">↻</text>
+        <text class="index-ibtn__label">刷新</text>
+      </view>
+      <view class="index-ibtn" bindtap="onSubscribe">
+        <text class="index-ibtn__icon">🔔</text>
+        <text class="index-ibtn__label">订阅提醒</text>
+      </view>
+      <view class="index-ibtn" bindtap="goSettings">
+        <text class="index-ibtn__icon">⚙</text>
+        <text class="index-ibtn__label">设置</text>
+      </view>
+      <view class="index-ibtn" bindtap="goDiagnose">
+        <text class="index-ibtn__icon">◇</text>
+        <text class="index-ibtn__label">问题诊断</text>
+      </view>
     </view>
-    <view class="index-toolbar__row">
-      <view class="index-chip index-chip--ghost" bindtap="goDiagnose">问题诊断</view>
-      <view class="index-chip index-chip--brand" bindtap="goAdd">＋ 添加植物</view>
+    <view class="index-toolbar__row index-toolbar__row--cta">
+      <view class="index-ibtn index-ibtn--brand" bindtap="goAdd">＋ 添加植物</view>
     </view>
   </view>
 
