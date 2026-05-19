@@ -94,7 +94,7 @@ npm run dev
 ### 4. 打开微信开发者工具
 
 1. 导入 `miniprogram/` 目录
-2. 修改 `miniprogram/utils/api.js` 中的 `BASE_URL` 为你的 API 地址（默认 `http://localhost:3000`）
+2. 修改 `miniprogram/utils/api.js` 中的 `BASE_URL` 为你的 API 地址（默认 `http://127.0.0.1:3000`），开发工具中记得勾选「不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书」
 3. 编译运行
 
 ### 5. 运行测试

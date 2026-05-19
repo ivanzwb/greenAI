@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "http://127.0.0.1:3000";
 
 /** Must match backend SUBSCRIBE_TEMPLATE_ID and the template in MP admin. */
 const SUBSCRIBE_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
