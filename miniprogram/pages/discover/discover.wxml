@@ -1,6 +1,5 @@
 <view class="ga-page discover">
   <view class="ga-hero discover-hero">
-    <text class="ga-hero__eyebrow">知识库</text>
     <view class="ga-hero__title">发现</view>
     <view class="ga-hero__desc">常见室内植物与养护要点，可与「我的植物」中的环境与提醒对照使用。</view>
   </view>
