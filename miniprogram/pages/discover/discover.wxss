@@ -9,8 +9,10 @@
 
 .discover-search {
   width: 100%;
-  padding: 22rpx 24rpx;
-  font-size: 28rpx;
+  height: 72rpx;
+  padding: 0 24rpx;
+  font-size: 26rpx;
+  line-height: 72rpx;
   color: var(--ga-text);
   background: var(--ga-bg-elevated);
   border-radius: var(--ga-radius-sm);
@@ -19,6 +21,8 @@
 
 .discover-search-ph {
   color: var(--ga-text-muted);
+  font-size: 26rpx;
+  line-height: 72rpx;
 }
 
 .discover-empty {
