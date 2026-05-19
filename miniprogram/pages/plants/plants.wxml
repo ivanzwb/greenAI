@@ -6,7 +6,6 @@
 
   <view class="plants-actions ga-card">
     <view class="plants-actions__primary" bindtap="goAdd">添加植物</view>
-    <view class="plants-actions__ghost" bindtap="onRefresh">同步列表</view>
   </view>
 
   <view wx:if="{{plants.length === 0}}" class="plants-empty ga-card">

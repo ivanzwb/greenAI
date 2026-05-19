@@ -114,10 +114,6 @@ Page({
     }
   },
 
-  onRefresh() {
-    this.load();
-  },
-
   goAdd() {
     wx.navigateTo({ url: "/pages/plant-edit/plant-edit" });
   },

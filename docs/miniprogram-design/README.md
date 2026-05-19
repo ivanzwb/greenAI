@@ -1,6 +1,6 @@
 # 小程序页面设计示意稿
 
-本目录为 **AI 生成的界面示意图**，用于对齐产品与视觉方向，**不是**微信开发者工具的真机截图。工程实现以 `miniprogram/` 下 WXML/WXSS 为准（发现/详情图文、设置天气条带图、编辑页拍照识别主卡片等已在代码侧对齐示意方向）。
+本目录为 **微信开发者工具真机截图**，反映小程序当前实现状态。工程实现以 `miniprogram/` 下 WXML/WXSS 为准。
 
 ## 「今日任务」首页（`01-index-today.png`）主题约束
 
@@ -19,18 +19,18 @@
 
 | 文件 | 对应页面 | 路由 |
 |------|----------|------|
-| `01-index-today.png` | 今日任务 | `pages/index/index` |
-| `02-plants.png` | 我的植物 | `pages/plants/plants` |
-| `03-plant-edit.png` | 添加/编辑植物 | `pages/plant-edit/plant-edit` |
-| `04-settings.png` | 设置 | `pages/settings/settings` |
+| `01.jpg` | 今日任务 | `pages/index/index` |
+| `02.jpg` | 我的植物 | `pages/plants/plants` |
+| `03.jpg` | 添加/编辑植物 | `pages/plant-edit/plant-edit` |
+| `04.jpg` | 设置 | `pages/settings/settings` |
 | `05-discover.png` | 发现 · 养护知识 | `pages/discover/discover` |
 | `06-discover-detail.png` | 知识详情 | `pages/discover-detail/discover-detail` |
 | `07-diagnose.png` | 问题诊断 | `pages/diagnose/diagnose` |
 
-TabBar 三页为「今日 / 植物 / 发现」，其余为二级页。
+TabBar 四页为「首页 / 识别 / 知识 / 我的」，其余为二级页。
 
 ## 更新方式
 
-在 Cursor 中重新生成 PNG 后，覆盖本目录同名 `01`–`07` 文件即可。
+在微信开发者工具中截图后，覆盖本目录同名文件即可（格式 JPG 或 PNG 均可）。
 
 仓库文档索引与写作规范见上级目录 [README.md](../README.md)、[writing-standard.md](../writing-standard.md)。
