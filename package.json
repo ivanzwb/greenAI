@@ -1,5 +1,6 @@
 {
   "name": "greenai",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "verify:openspec-docs": "node --test scripts/parity-docs-anchor.test.mjs",
