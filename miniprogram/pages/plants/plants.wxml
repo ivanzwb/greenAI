@@ -3,6 +3,9 @@
     <text class="ga-hero__eyebrow">档案</text>
     <view class="ga-hero__title">我的植物</view>
     <view class="ga-hero__desc">管理品种、环境与养护节奏；编辑后将自动重算计划。</view>
+    <view class="plants-hero__settings" bindtap="goSettings">
+      <text>⚙ 设置</text>
+    </view>
   </view>
 
   <view class="plants-actions ga-card">

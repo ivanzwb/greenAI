@@ -1,5 +1,16 @@
 .plants-hero {
   margin-bottom: var(--ga-space-lg);
+  position: relative;
+}
+.plants-hero__settings {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 24rpx;
+  color: var(--ga-text-secondary);
+  padding: 8rpx 12rpx;
+  background: rgba(0,0,0,0.03);
+  border-radius: var(--ga-radius-sm);
 }
 
 .plants-actions {

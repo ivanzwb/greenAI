@@ -23,19 +23,13 @@
       },
       {
         "pagePath": "pages/plants/plants",
-        "text": "植物",
+        "text": "我的",
         "iconPath": "images/tab.png",
         "selectedIconPath": "images/tab-active.png"
       },
       {
         "pagePath": "pages/discover/discover",
         "text": "发现",
-        "iconPath": "images/tab.png",
-        "selectedIconPath": "images/tab-active.png"
-      },
-      {
-        "pagePath": "pages/settings/settings",
-        "text": "我的",
         "iconPath": "images/tab.png",
         "selectedIconPath": "images/tab-active.png"
       }

@@ -23,6 +23,9 @@ Page({
       wx.showToast({ title: "加载失败", icon: "none" });
     }
   },
+  goSettings() {
+    wx.navigateTo({ url: "/pages/settings/settings" });
+  },
   onRefresh() {
     this.load();
   },
