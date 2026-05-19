@@ -239,7 +239,12 @@ Page({
   },
 
   onTzChange(e) {
-    this.setData({ tzIndex: Number(e.detail.value) });
+    const idx = Number(e.detail.value);
+    this.setData({ tzIndex: idx });
+    const tz = this.data.labels[idx];
+    request({ path: "/users/me", method: "PATCH", data: { timezone: tz } })
+      .then(() => wx.showToast({ title: "时区已更新", icon: "none" }))
+      .catch(() => {});
   },
 
   onAspectChange(e) {
@@ -268,33 +273,37 @@ Page({
     }
   },
 
-  async onSave() {
-    const tz = this.data.labels[this.data.tzIndex];
-    try {
-      await request({
-        path: "/users/me",
-        method: "PATCH",
-        data: { timezone: tz },
-      });
-      wx.showToast({ title: "已保存" });
-      this.loadMeAndWeather();
-    } catch (e) {
-      wx.showToast({ title: "保存失败", icon: "none" });
-    }
-  },
-
   onPickLocation() {
     wx.getLocation({
       type: "wgs84",
       success: (res) => {
+        const { latitude, longitude } = res;
+        // Save location, then auto-detect timezone from coordinates
         request({
           path: "/users/me",
           method: "PATCH",
-          data: { latitude: res.latitude, longitude: res.longitude },
+          data: { latitude, longitude },
         })
-          .then(() => {
+          .then(async () => {
             wx.setStorageSync(LOCATION_INTRO_MODAL_KEY, "1");
-            wx.showToast({ title: "位置已保存" });
+            try {
+              const tzRes = await request({
+                path: `/timezone/detect?lat=${latitude}&lng=${longitude}`,
+                method: "GET",
+              });
+              if (tzRes && tzRes.timezone) {
+                await request({
+                  path: "/users/me",
+                  method: "PATCH",
+                  data: { timezone: tzRes.timezone },
+                });
+                wx.showToast({ title: `位置已保存 · 时区 ${tzRes.timezone}` });
+              } else {
+                wx.showToast({ title: "位置已保存" });
+              }
+            } catch {
+              wx.showToast({ title: "位置已保存" });
+            }
             this.loadMeAndWeather();
           })
           .catch(() => {

@@ -32,17 +32,6 @@
   </block>
 
   <!-- ====== 定位 & 设置（inline） ====== -->
-  <view class="ga-section-title">时区</view>
-  <view class="settings-card ga-card">
-    <view class="settings-field">
-      <text class="settings-label">时区（影响「今日任务」按哪天算）</text>
-      <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
-        <view class="settings-picker">{{labels[tzIndex]}}</view>
-      </picker>
-    </view>
-    <view class="settings-primary" bindtap="onSave">保存时区</view>
-  </view>
-
   <view class="ga-section-title">室内微气候</view>
   <view class="settings-card ga-card">
     <view class="settings-field settings-field--row">
@@ -59,7 +48,7 @@
     <text class="settings-hint-inline">与浇水间隔规则联动；保存后新建或「重算计划」的植物会采用最新偏好。</text>
   </view>
 
-  <view class="ga-section-title">天气与环境</view>
+  <view class="ga-section-title">位置与天气</view>
   <view wx:if="{{needLocationTip}}" class="settings-callout ga-card">
     <text class="settings-callout__title">环境感知</text>
     <text class="settings-callout__body">保存当前位置后，会结合当地温湿度与短期预报微调浇水间隔。请在下方使用「使用当前定位」并允许授权。</text>
@@ -90,12 +79,22 @@
       </view>
     </view>
 
+    <!-- 时区（与定位绑定） -->
+    <view class="settings-field settings-field--tz">
+      <text class="settings-label">时区</text>
+      <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
+        <view class="settings-picker">{{labels[tzIndex]}}</view>
+      </picker>
+    </view>
     <view class="settings-field">
       <text class="settings-label">已保存位置（WGS84）</text>
       <text class="settings-mono">{{locSummary}}</text>
       <text wx:if="{{locationReadable}}" class="settings-location-label">{{locationReadable}}</text>
     </view>
-    <view class="settings-weather">{{weatherLine}}</view>
+    <view class="settings-field">
+      <text class="settings-label">当前天气</text>
+      <text class="settings-weather">{{weatherLine}}</text>
+    </view>
     <view wx:if="{{forecastHint}}" class="settings-hint">{{forecastHint}}</view>
     <view wx:if="{{forecastDays.length}}" class="settings-forecast-head">未来 3 天预报（按已保存时区）</view>
     <block wx:for="{{forecastDays}}" wx:key="date">
