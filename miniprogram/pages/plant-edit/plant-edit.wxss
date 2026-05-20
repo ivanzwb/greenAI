@@ -148,10 +148,13 @@
   width: 100%;
   padding: 22rpx 24rpx;
   font-size: 30rpx;
+  line-height: 1.2;
+  height: 74rpx;
   color: var(--ga-text);
   background: var(--ga-bg-elevated);
   border-radius: var(--ga-radius-sm);
   border: 1rpx solid var(--ga-border-strong);
+  box-sizing: border-box;
 }
 
 .plant-textarea {

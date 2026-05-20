@@ -1,6 +1,5 @@
 <view class="ga-page plant-form">
   <view class="plant-identify ga-card">
-    <text class="plant-identify-kicker">智能识别</text>
     <view class="plant-identify-title">拍照识别植物</view>
     <text class="plant-identify-desc">对准叶片或整盆拍摄，自动解析品种学名，适合快速建档；也可稍后在下方手动填写。</text>
     <view class="plant-identify-stage">
@@ -15,7 +14,6 @@
   </view>
 
   <view class="ga-hero plant-form-hero">
-    <text class="ga-hero__eyebrow">档案</text>
     <view class="ga-hero__title">植物档案</view>
     <view class="ga-hero__desc">补充昵称与环境后，浇水与施肥计划会更贴合你的空间。</view>
   </view>
