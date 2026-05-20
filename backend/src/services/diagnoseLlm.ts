@@ -92,7 +92,12 @@ export async function diagnosePlantWithVisionLlm(input: {
     ],
   };
 
-  if (!input.model.toLowerCase().includes("deepseek")) {
+  const modelLc = input.model.toLowerCase();
+  if (
+    !modelLc.includes("deepseek") &&
+    !modelLc.includes("qwen") &&
+    !modelLc.includes("dashscope")
+  ) {
     payload.response_format = { type: "json_object" };
   }
 
