@@ -15,9 +15,6 @@ const ZONES = [
   "America/Los_Angeles",
 ];
 
-const WINDOW_ASPECT_KEYS = ["unknown", "north", "south", "east", "west"];
-const WINDOW_ASPECT_LABELS = ["未知", "北向", "南向", "东向", "西向"];
-
 function locationReadable(me) {
   const label = me && me.locationLabel != null ? String(me.locationLabel).trim() : "";
   return label.length > 0 ? label : "";
@@ -83,10 +80,6 @@ Page({
     forecastDays: [],
     currentLive: null,
     liveWeatherKind: "cloud",
-    aspectKeys: WINDOW_ASPECT_KEYS,
-    aspectLabels: WINDOW_ASPECT_LABELS,
-    aspectIndex: 0,
-    airConditioning: false,
   },
 
   onShow() {
@@ -163,17 +156,11 @@ Page({
         idx = 0;
       }
       const hasLoc = me.latitude != null && me.longitude != null;
-      let aspectIndex = 0;
-      const wa = me.windowAspect || "unknown";
-      const ai = WINDOW_ASPECT_KEYS.indexOf(wa);
-      if (ai >= 0) aspectIndex = ai;
       this.setData({
         labels,
         tzIndex: idx,
         locationReadable: locationReadable(me),
         needLocationTip: !hasLoc,
-        airConditioning: Boolean(me.airConditioning),
-        aspectIndex,
 
         forecastHint: "",
         forecastDays: [],
@@ -226,32 +213,6 @@ Page({
     request({ path: "/users/me", method: "PATCH", data: { timezone: tz } })
       .then(() => wx.showToast({ title: "时区已更新", icon: "none" }))
       .catch(() => {});
-  },
-
-  onAspectChange(e) {
-    this.setData({ aspectIndex: Number(e.detail.value) });
-  },
-
-  onAcChange(e) {
-    this.setData({ airConditioning: e.detail.value });
-  },
-
-  async onSaveEnv() {
-    const aspect = this.data.aspectKeys[this.data.aspectIndex];
-    try {
-      await request({
-        path: "/users/me",
-        method: "PATCH",
-        data: {
-          airConditioning: this.data.airConditioning,
-          windowAspect: aspect,
-        },
-      });
-      wx.showToast({ title: "环境偏好已保存" });
-      this.loadMeAndWeather();
-    } catch (e) {
-      wx.showToast({ title: "保存失败", icon: "none" });
-    }
   },
 
   onPickLocation() {

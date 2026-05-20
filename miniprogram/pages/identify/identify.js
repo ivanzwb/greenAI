@@ -3,7 +3,6 @@ const { request } = require("../../utils/api.js");
 Page({
   data: {
     identifyResult: null,
-    diagnoseResult: null,
   },
 
   /** 拍照识花 */
@@ -40,7 +39,6 @@ Page({
                     best.careSummary ||
                     "已识别到品种",
                 },
-                diagnoseResult: null,
               });
               wx.showToast({ title: "识别成功", icon: "success" });
             } catch (e) {
@@ -67,55 +65,9 @@ Page({
     });
   },
 
-  /** 拍照诊断 */
+  /** 土壤诊断（和症状诊断一样，导航到诊断页的土壤 tab） */
   onDiagnosePhoto() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ["image"],
-      sourceType: ["album", "camera"],
-      success: (pick) => {
-        const path = pick.tempFiles[0].tempFilePath;
-        const fs = wx.getFileSystemManager();
-        fs.readFile({
-          filePath: path,
-          encoding: "base64",
-          success: async (fileRes) => {
-            wx.showLoading({ title: "AI 分析中", mask: true });
-            try {
-              const result = await request({
-                path: "/diagnose/llm",
-                method: "POST",
-                data: { imageBase64: fileRes.data },
-              });
-              const text =
-                (result && (result.analysis || result.result || JSON.stringify(result))) ||
-                "AI 未返回诊断结果";
-              this.setData({
-                diagnoseResult: text,
-                identifyResult: null,
-              });
-            } catch (e) {
-              const code = e && e.statusCode;
-              const msg =
-                code === 503
-                  ? "未启用 AI 诊断"
-                  : code === 502
-                  ? "AI 服务异常"
-                  : "AI 请求失败";
-              wx.showToast({ title: msg, icon: "none" });
-            } finally {
-              wx.hideLoading();
-            }
-          },
-          fail: () => {
-            wx.showToast({ title: "读取图片失败", icon: "none" });
-          },
-        });
-      },
-      fail: () => {
-        wx.showToast({ title: "未选择图片", icon: "none" });
-      },
-    });
+    wx.navigateTo({ url: "/pages/diagnose/diagnose?mode=soil" });
   },
 
   /** 症状诊断 */

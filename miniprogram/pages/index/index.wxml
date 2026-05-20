@@ -45,41 +45,45 @@
     <text class="index-weather__placeholder">🌍 保存位置后可查看本地天气</text>
   </view>
 
-  <!-- ======== Section title ======== -->
-  <text class="index-section-title">📋 待办</text>
-
-  <!-- ======== Empty state ======== -->
-  <view wx:if="{{tasks.length === 0}}" class="index-empty ga-card">
-    <view class="index-empty__mark" />
-    <text class="index-empty__title">暂无养护待办</text>
-    <text class="index-empty__hint">所有植物已养护完成，今天可以休息一下 ✨</text>
-    <view class="index-empty__act" bindtap="goAdd">＋ 添加植物</view>
-  </view>
-
-  <!-- ======== Task list ======== -->
-  <block wx:for="{{tasks}}" wx:key="id">
-    <view class="index-task ga-card">
-      <view class="index-task__head">
-        <view class="index-badge index-badge--{{item.typeClass}}">{{item.displayType}}</view>
-        <text class="index-task__time">{{item.displayTime}}</text>
+  <!-- ======== 待办区域 ======== -->
+  <block wx:if="{{tasks.length > 0}}">
+    <text class="index-section-title">📋 待办</text>
+    <block wx:for="{{tasks}}" wx:key="id">
+      <view class="index-task ga-card">
+        <view class="index-task__head">
+          <view class="index-badge index-badge--{{item.typeClass}}">{{item.displayType}}</view>
+          <text class="index-task__time">{{item.displayTime}}</text>
+        </view>
+        <text class="index-task__plant">{{item.plantNickname}}</text>
+        <view class="index-task__foot">
+          <view class="index-pill index-pill--primary" data-id="{{item.id}}" bindtap="onComplete">标记完成</view>
+          <view class="index-pill index-pill--quiet" data-id="{{item.id}}" bindtap="onSkip">跳过</view>
+        </view>
       </view>
-      <text class="index-task__plant">{{item.plantNickname}}</text>
-      <view class="index-task__foot">
-        <view class="index-pill index-pill--primary" data-id="{{item.id}}" bindtap="onComplete">标记完成</view>
-        <view class="index-pill index-pill--quiet" data-id="{{item.id}}" bindtap="onSkip">跳过</view>
-      </view>
-    </view>
+    </block>
   </block>
 
   <!-- ======== Quick actions ======== -->
   <view class="index-actions ga-card">
-    <view class="index-act" bindtap="goAdd">
-      <text class="index-act__icon">＋</text>
-      <text class="index-act__label">添加植物</text>
+    <view class="index-actions__row">
+      <view class="index-act index-act--identify" bindtap="onIdentify">
+        <text class="index-act__icon">🌼</text>
+        <text class="index-act__label">拍照识花</text>
+      </view>
+      <view class="index-act index-act--soil" bindtap="onDiagnosePhoto">
+        <text class="index-act__icon">🪴</text>
+        <text class="index-act__label">土壤诊断</text>
+      </view>
+      <view class="index-act index-act--symptom" bindtap="onDiagnoseSymptom">
+        <text class="index-act__icon">📋</text>
+        <text class="index-act__label">症状诊断</text>
+      </view>
     </view>
-    <view class="index-act" bindtap="goDiagnose">
-      <text class="index-act__icon">◇</text>
-      <text class="index-act__label">问题诊断</text>
+    <view class="index-actions__row">
+      <view class="index-act index-act--full" bindtap="goAdd">
+        <text class="index-act__icon">＋</text>
+        <text class="index-act__label">添加植物</text>
+      </view>
     </view>
   </view>
 </view>

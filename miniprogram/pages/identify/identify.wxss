@@ -29,6 +29,9 @@
 .identify-card__icon--blue {
   background: #e3f0fa;
 }
+.identify-card__icon--soil {
+  background: #efe6db;
+}
 
 .identify-card__body {
   flex: 1;
@@ -82,3 +85,4 @@
   margin-top: 8rpx;
   word-break: break-word;
 }
+

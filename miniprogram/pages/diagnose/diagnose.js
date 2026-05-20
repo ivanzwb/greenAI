@@ -21,6 +21,21 @@ function applySelected(symptomGroups, selectedIds) {
   }));
 }
 
+const MOISTURE_MAP = {
+  very_wet: "很湿",
+  wet: "偏湿",
+  moderate: "适中",
+  dry: "偏干",
+  very_dry: "很干",
+};
+
+const FERTILITY_MAP = {
+  unknown: "未知",
+  depleted: "贫瘠",
+  adequate: "适中",
+  rich: "肥沃",
+};
+
 Page({
   data: {
     symptomGroups: [],
@@ -32,12 +47,23 @@ Page({
     result: null,
     llmDiagnoseEnabled: false,
     llmImageBase64: "",
-    llmImageLabel: "未选择照片",
-    userNote: "",
-    llmResult: null,
+    llmImageLabel: "",
+    /** @type {{ moistureKey:string, moistureLabel:string, fertilityLabel:string, rationale:string, wateringTip?:string, confidence?:number } | null} */
+    soilResult: null,
   },
-  async onLoad() {
+  async onLoad(options) {
     await Promise.all([this.loadCatalog(), this.loadPlants()]);
+    // 如果从 identify 页的「土壤诊断」跳过来，滚动到土壤面板
+    if (options && options.mode === "soil") {
+      wx.nextTick(() => {
+        wx.createSelectorQuery()
+          .select("#soil-panel")
+          .boundingClientRect((rect) => {
+            if (rect) wx.pageScrollTo({ scrollTop: rect.top - 20, duration: 300 });
+          })
+          .exec();
+      });
+    }
   },
   onOpenKnowledgeArticle(e) {
     const slug = e.currentTarget.dataset.slug;
@@ -113,31 +139,29 @@ Page({
     });
   },
   async onSubmitLlm() {
-    const {
-      llmImageBase64,
-      selectedIds,
-      plantIds,
-      plantPickerIndex,
-      userNote,
-    } = this.data;
+    const { llmImageBase64 } = this.data;
     if (!llmImageBase64 || String(llmImageBase64).length < 80) {
-      wx.showToast({ title: "请先选择清晰照片", icon: "none" });
+      wx.showToast({ title: "请先选择清晰盆土照片", icon: "none" });
       return;
     }
-    const plantId = plantIds[plantPickerIndex] || undefined;
-    const body = { imageBase64: llmImageBase64 };
-    const note = (userNote || "").trim();
-    if (note) body.userNote = note;
-    if (selectedIds && selectedIds.length) body.symptomIds = selectedIds;
-    if (plantId) body.plantId = plantId;
     wx.showLoading({ title: "AI 分析中", mask: true });
     try {
-      const llmResult = await request({
-        path: "/diagnose/llm",
+      const result = await request({
+        path: "/soil/estimate-photo",
         method: "POST",
-        data: body,
+        data: { imageBase64: llmImageBase64 },
       });
-      this.setData({ llmResult });
+      const moistureKey = result?.soilMoistureHint || "moderate";
+      this.setData({
+        soilResult: {
+          moistureKey,
+          moistureLabel: MOISTURE_MAP[moistureKey] || moistureKey,
+          fertilityLabel: FERTILITY_MAP[result?.soilFertilityHint] || result?.soilFertilityHint || "未知",
+          rationale: result?.rationale || "",
+          wateringTip: result?.wateringTip || "",
+          confidence: result?.confidence ? Math.round(result.confidence * 100) : 0,
+        },
+      });
     } catch (e) {
       const code = e && e.statusCode;
       const msg =

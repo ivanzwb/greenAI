@@ -1,7 +1,7 @@
 <view class="ga-page diagnose">
   <view class="ga-hero diagnose-hero">
     <view class="ga-hero__title">问题诊断</view>
-    <view class="ga-hero__desc">可先勾选症状做规则参考，或使用「拍照 AI 诊断」（需服务端配置）。结果仅供参考。</view>
+    <view class="ga-hero__desc">可拍照评估盆土干湿度与肥力，或勾选症状做规则参考。结果仅供参考。</view>
   </view>
 
   <view class="diagnose-expert ga-card">
@@ -11,49 +11,37 @@
     <text class="diagnose-expert__note">需在小程序后台开通「客服」后，按钮才会接入会话。</text>
   </view>
 
-  <view wx:if="{{llmDiagnoseEnabled}}" class="diagnose-panel ga-card">
-    <text class="diagnose-panel__title">拍照 AI 诊断</text>
+  <view wx:if="{{llmDiagnoseEnabled}}" class="diagnose-panel ga-card" id="soil-panel">
+    <text class="diagnose-panel__title soil-panel__title">🪴 土壤诊断</text>
+    <text class="diagnose-panel__hint">拍摄盆土特写照片，AI 评估干湿度与肥力状态</text>
     <text class="diagnose-panel__hint">{{llmImageLabel}}</text>
     <view class="diagnose-row-btns">
-      <view class="diagnose-btn diagnose-btn--primary" bindtap="onPickImage">选择 / 拍摄照片</view>
-      <view class="diagnose-btn diagnose-btn--ghost {{!llmImageBase64 ? 'diagnose-btn--disabled' : ''}}" bindtap="onSubmitLlm">提交分析</view>
-    </view>
-    <view class="diagnose-field">
-      <text class="diagnose-label">文字补充（可选）</text>
-      <textarea
-        class="diagnose-textarea"
-        placeholder="例如：最近两周浇水频率、是否施肥、是否换盆等"
-        value="{{userNote}}"
-        maxlength="800"
-        bindinput="onUserNoteInput"
-      />
+      <view class="diagnose-btn diagnose-btn--primary" bindtap="onPickImage">选择 / 拍摄盆土照片</view>
+      <view class="diagnose-btn diagnose-btn--ghost {{!llmImageBase64 ? 'diagnose-btn--disabled' : ''}}" bindtap="onSubmitLlm">评估土壤</view>
     </view>
   </view>
   <view wx:else class="diagnose-muted ga-card">当前未启用视觉大模型诊断（服务器未配置 DIAGNOSE_LLM_API_KEY）。仍可使用下方规则诊断。</view>
 
-  <view wx:if="{{llmResult && llmResult.diagnosis}}" class="diagnose-llm-result ga-card">
-    <text class="diagnose-llm-result__title">AI 参考结论</text>
-    <text class="diagnose-summary">{{llmResult.diagnosis.summary}}</text>
-    <block wx:for="{{llmResult.diagnosis.likely_issues}}" wx:for-item="iss" wx:for-index="ix" wx:key="ix">
-      <view class="diagnose-issue">
-        <text class="diagnose-issue__title">{{iss.title}}</text>
-        <text class="diagnose-issue__detail">{{iss.detail}}</text>
-      </view>
-    </block>
-    <text class="diagnose-label diagnose-label--spaced">建议措施</text>
-    <block wx:for="{{llmResult.diagnosis.immediate_actions}}" wx:key="*this">
-      <text class="diagnose-action-line">· {{item}}</text>
-    </block>
-    <text wx:if="{{llmResult.diagnosis.caution}}" class="diagnose-tip diagnose-tip--top">{{llmResult.diagnosis.caution}}</text>
-    <text wx:if="{{llmResult.diagnosis.needs_expert_visit}}" class="diagnose-tip">建议尽快携带样本或照片咨询线下园艺 / 植保人员。</text>
-    <view wx:if="{{llmResult.relatedArticles && llmResult.relatedArticles.length}}" class="diagnose-kb ga-card">
-      <text class="diagnose-kb__title">延伸阅读</text>
-      <view wx:for="{{llmResult.relatedArticles}}" wx:key="slug" class="diagnose-kb__row" data-slug="{{item.slug}}" bindtap="onOpenKnowledgeArticle">
-        <text class="diagnose-kb__row-title">{{item.title}}</text>
-        <text wx:if="{{item.summary}}" class="diagnose-kb__row-sum">{{item.summary}}</text>
-      </view>
+  <!-- 土壤诊断结果 -->
+  <view wx:if="{{soilResult}}" class="diagnose-soil-result ga-card">
+    <text class="diagnose-soil-result__title">土壤评估结果</text>
+    <view class="diagnose-soil__row">
+      <text class="diagnose-soil__label">干湿度</text>
+      <text class="diagnose-soil__tag diagnose-soil__tag--{{soilResult.moistureKey}}">{{soilResult.moistureLabel}}</text>
+      <text wx:if="{{soilResult.confidence}}" class="diagnose-soil__conf">置信度 {{soilResult.confidence}}%</text>
     </view>
-    <text class="diagnose-disclaimer diagnose-disclaimer--top">{{llmResult.disclaimer}}</text>
+    <view class="diagnose-soil__row">
+      <text class="diagnose-soil__label">肥力</text>
+      <text class="diagnose-soil__tag diagnose-soil__tag--fertility">{{soilResult.fertilityLabel}}</text>
+    </view>
+    <view wx:if="{{soilResult.rationale}}" class="diagnose-soil__block">
+      <text class="diagnose-soil__subtitle">分析依据</text>
+      <text class="diagnose-soil__text">{{soilResult.rationale}}</text>
+    </view>
+    <view wx:if="{{soilResult.wateringTip}}" class="diagnose-soil__block">
+      <text class="diagnose-soil__subtitle">养护建议</text>
+      <text class="diagnose-soil__text diagnose-soil__tip">{{soilResult.wateringTip}}</text>
+    </view>
   </view>
 
   <view class="ga-section-title">规则诊断</view>

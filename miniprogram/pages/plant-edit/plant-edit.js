@@ -13,6 +13,9 @@ const SOIL_LABELS = ["不填（默认）", "很湿", "偏湿", "适中", "偏干
 /** API values; index 0 = omit / null */
 const SOIL_VALUES = [null, "very_wet", "wet", "moderate", "dry", "very_dry"];
 
+const WINDOW_ASPECT_KEYS = ["unknown", "north", "south", "east", "west"];
+const WINDOW_ASPECT_LABELS = ["未知", "北向", "南向", "东向", "西向"];
+
 const SOIL_HINT_LABELS = {
   very_wet: "很湿",
   wet: "偏湿",
@@ -77,8 +80,15 @@ Page({
     fertilizerType: "",
     careTips: "",
     soilRecords: [],
+    // user-level microclimate
+    airConditioning: false,
+    aspectKeys: WINDOW_ASPECT_KEYS,
+    aspectLabels: WINDOW_ASPECT_LABELS,
+    aspectIndex: 0,
+    switchOnColor: "#2a4d3a",
   },
   onLoad(options) {
+    this.loadUserSettings();
     if (options.id) {
       this.setData({ plantId: options.id, submitLabel: "保存修改" });
       this.loadPlant(options.id);
@@ -119,6 +129,19 @@ Page({
       wx.showToast({ title: "加载失败", icon: "none" });
       setTimeout(() => wx.navigateBack(), 1500);
     }
+  },
+  async loadUserSettings() {
+    try {
+      const me = await request({ path: "/users/me", method: "GET" });
+      const wa = me.windowAspect || "unknown";
+      let aspectIndex = 0;
+      const ai = WINDOW_ASPECT_KEYS.indexOf(wa);
+      if (ai >= 0) aspectIndex = ai;
+      this.setData({
+        airConditioning: Boolean(me.airConditioning),
+        aspectIndex,
+      });
+    } catch (_) { /* best-effort */ }
   },
   async loadSoilRecords(plantId) {
     if (!plantId) {
@@ -322,6 +345,12 @@ Page({
       },
     });
   },
+  onAcChange(e) {
+    this.setData({ airConditioning: e.detail.value });
+  },
+  onAspectChange(e) {
+    this.setData({ aspectIndex: Number(e.detail.value) });
+  },
   onIdentifyPlant() {
     wx.chooseMedia({
       count: 1,
@@ -443,7 +472,13 @@ Page({
     if (ft) body.fertilizerType = ft;
     const ct = (careTips || "").trim();
     if (ct) body.careTips = ct;
+    // save user-level microclimate preferences
+    const userBody = {
+      airConditioning: this.data.airConditioning,
+      windowAspect: this.data.aspectKeys[this.data.aspectIndex],
+    };
     try {
+      await request({ path: "/users/me", method: "PATCH", data: userBody }).catch(() => {});
       if (plantId) {
         await request({
           path: `/plants/${plantId}`,

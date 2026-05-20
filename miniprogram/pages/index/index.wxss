@@ -283,9 +283,18 @@
 /* ── Quick actions ── */
 
 .index-actions {
-  display: flex;
   margin-top: var(--ga-space-lg);
   margin-bottom: var(--ga-space);
+  padding: 16rpx;
+}
+
+.index-actions__row {
+  display: flex;
+  gap: 12rpx;
+}
+
+.index-actions__row + .index-actions__row {
+  margin-top: 12rpx;
 }
 
 .index-act {
@@ -296,25 +305,42 @@
   gap: 8rpx;
   padding: 20rpx 8rpx;
   border-radius: var(--ga-radius-sm);
+  border: 1rpx solid var(--ga-border-strong);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .index-act:active {
+  filter: brightness(0.92);
+}
+
+.index-act--identify,
+.index-act--soil,
+.index-act--symptom {
   background: var(--ga-brand-soft);
 }
 
-.index-act + .index-act {
-  border-left: 1rpx solid var(--ga-border);
+.index-act--full {
+  flex: none;
+  width: 100%;
+  background: var(--ga-brand);
+  color: #f6fffa;
+  border-color: var(--ga-brand);
+}
+
+.index-act--full .index-act__icon,
+.index-act--full .index-act__label {
+  color: #f6fffa;
 }
 
 .index-act__icon {
-  font-size: 32rpx;
+  font-size: 36rpx;
   flex-shrink: 0;
 }
 
 .index-act__label {
   font-size: 26rpx;
   font-weight: 600;
-  white-space: nowrap;
 }
+
+

@@ -322,3 +322,83 @@
   line-height: 1.45;
   margin-top: 8rpx;
 }
+
+/* ── Soil title ── */
+
+.soil-panel__title {
+  font-size: 30rpx;
+}
+
+/* ── Soil result ── */
+
+.diagnose-soil-result {
+  padding: 28rpx 28rpx 32rpx;
+  margin-bottom: var(--ga-space-lg);
+  background: #f8f6f0;
+  border: 1rpx solid rgba(139, 119, 90, 0.2);
+}
+.diagnose-soil-result__title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #5d4a2e;
+  margin-bottom: 16rpx;
+}
+.diagnose-soil__row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+  flex-wrap: wrap;
+}
+.diagnose-soil__label {
+  font-size: 26rpx;
+  color: var(--ga-text-muted);
+  font-weight: 600;
+  min-width: 5em;
+}
+.diagnose-soil__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+.diagnose-soil__tag--very_wet,
+.diagnose-soil__tag--wet { background: #d4edda; color: #155724; }
+.diagnose-soil__tag--moderate { background: #fff3cd; color: #856404; }
+.diagnose-soil__tag--dry,
+.diagnose-soil__tag--very_dry { background: #f8d7da; color: #721c24; }
+.diagnose-soil__tag--fertility {
+  background: #e2e3f0;
+  color: #383d6e;
+}
+.diagnose-soil__conf {
+  font-size: 22rpx;
+  color: var(--ga-text-muted);
+}
+.diagnose-soil__block {
+  margin-top: 16rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid var(--ga-border);
+}
+.diagnose-soil__subtitle {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--ga-text);
+  margin-bottom: 8rpx;
+}
+.diagnose-soil__text {
+  display: block;
+  font-size: 24rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.6;
+}
+.diagnose-soil__tip {
+  padding: 14rpx 18rpx;
+  background: #f0f9f4;
+  border-radius: var(--ga-radius-sm);
+  color: #2d6a4f;
+}

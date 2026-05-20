@@ -30,23 +30,6 @@
     </view>
   </block>
 
-  <!-- ====== 定位 & 设置（inline） ====== -->
-  <view class="ga-section-title">室内微气候</view>
-  <view class="settings-card ga-card">
-    <view class="settings-field settings-field--row">
-      <text class="settings-label settings-label--inline">长期开空调（偏干）</text>
-      <switch color="#2a4d3a" checked="{{airConditioning}}" bindchange="onAcChange" />
-    </view>
-    <view class="settings-field">
-      <text class="settings-label">窗台 / 主采光朝向</text>
-      <picker mode="selector" range="{{aspectLabels}}" value="{{aspectIndex}}" bindchange="onAspectChange">
-        <view class="settings-picker">{{aspectLabels[aspectIndex]}}</view>
-      </picker>
-    </view>
-    <view class="settings-primary settings-primary--secondary" bindtap="onSaveEnv">保存环境偏好</view>
-    <text class="settings-hint-inline">与浇水间隔规则联动；保存后新建或「重算计划」的植物会采用最新偏好。</text>
-  </view>
-
   <view class="ga-section-title">位置与天气</view>
   <view wx:if="{{needLocationTip}}" class="settings-callout ga-card">
     <text class="settings-callout__title">环境感知</text>

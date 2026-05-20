@@ -14,12 +14,12 @@
     <text class="identify-card__arrow">›</text>
   </view>
 
-  <!-- 拍照诊断 -->
+  <!-- 土壤诊断 -->
   <view class="identify-card ga-card" bindtap="onDiagnosePhoto">
-    <view class="identify-card__icon identify-card__icon--amber">🔍</view>
+    <view class="identify-card__icon identify-card__icon--soil">🪴</view>
     <view class="identify-card__body">
-      <text class="identify-card__title">拍照诊断</text>
-      <text class="identify-card__desc">上传病斑/虫害/萎蔫照片，AI 分析原因</text>
+      <text class="identify-card__title">土壤诊断</text>
+      <text class="identify-card__desc">拍摄盆土照片，AI 评估干湿与肥力</text>
     </view>
     <text class="identify-card__arrow">›</text>
   </view>
@@ -46,8 +46,5 @@
     </text>
   </view>
 
-  <view wx:if="{{diagnoseResult}}" class="identify-result ga-card">
-    <text class="identify-result__title">诊断结果</text>
-    <text class="identify-result__body">{{diagnoseResult}}</text>
-  </view>
+
 </view>

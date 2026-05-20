@@ -54,23 +54,33 @@
         <view class="plant-picker">{{lightLabels[lightIndex]}}</view>
       </picker>
     </view>
-    <view class="plant-field">
-      <text class="plant-label">盆土干湿（自评）</text>
-      <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
-        <view class="plant-picker">{{soilLabels[soilIndex]}}</view>
-      </picker>
-      <text class="plant-soil-hint">盆土拍照主要辅助判断干湿手感；肥力与病虫害需结合日常观察，结论仅供参考。</text>
-      <view class="plant-inline-actions">
-        <view class="plant-link-btn" bindtap="onEstimateSoilPhoto">拍照估算盆土</view>
+      <view class="plant-field">
+        <text class="plant-label">盆土干湿（自评）</text>
+        <picker mode="selector" range="{{soilLabels}}" value="{{soilIndex}}" bindchange="onSoilChange">
+          <view class="plant-picker">{{soilLabels[soilIndex]}}</view>
+        </picker>
+        <text class="plant-soil-hint">盆土拍照主要辅助判断干湿手感；肥力与病虫害需结合日常观察，结论仅供参考。</text>
+        <view class="plant-inline-actions">
+          <view class="plant-link-btn" bindtap="onEstimateSoilPhoto">拍照估算盆土</view>
+        </view>
       </view>
-    </view>
-    <view wx:if="{{soilRecords.length}}" class="plant-soil-records">
-      <text class="plant-soil-records__title">最近盆土拍照记录</text>
-      <view wx:for="{{soilRecords}}" wx:key="id" class="plant-soil-records__row">
-        <text class="plant-soil-records__meta">{{item.when}} · {{item.moistureLabel}}<text wx:if="{{item.fertilityLabel}}"> · {{item.fertilityLabel}}</text></text>
-        <text wx:if="{{item.tip}}" class="plant-soil-records__tip">{{item.tip}}</text>
+      <view wx:if="{{soilRecords.length}}" class="plant-soil-records">
+        <text class="plant-soil-records__title">最近盆土拍照记录</text>
+        <view wx:for="{{soilRecords}}" wx:key="id" class="plant-soil-records__row">
+          <text class="plant-soil-records__meta">{{item.when}} · {{item.moistureLabel}}<text wx:if="{{item.fertilityLabel}}"> · {{item.fertilityLabel}}</text></text>
+          <text wx:if="{{item.tip}}" class="plant-soil-records__tip">{{item.tip}}</text>
+        </view>
       </view>
-    </view>
+      <view class="plant-field plant-field--row">
+        <text class="plant-label plant-label--inline">长期开空调（偏干）</text>
+        <switch color="{{switchOnColor}}" checked="{{airConditioning}}" bindchange="onAcChange" />
+      </view>
+      <view class="plant-field">
+        <text class="plant-label">窗台 / 主采光朝向</text>
+        <picker mode="selector" range="{{aspectLabels}}" value="{{aspectIndex}}" bindchange="onAspectChange">
+          <view class="plant-picker">{{aspectLabels[aspectIndex]}}</view>
+        </picker>
+      </view>
   </view>
 
   <view class="ga-section-title">计划细节（可选）</view>
