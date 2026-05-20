@@ -125,10 +125,12 @@ jobs:
             'miniprogram/pages/plants/plants.json',
             'miniprogram/pages/settings/settings.json',
             'miniprogram/pages/plant-edit/plant-edit.json',
+            'miniprogram/pages/plant-plan/plant-plan.json',
+            'miniprogram/pages/plant-sensors/plant-sensors.json',
+            'miniprogram/pages/device-provision/device-provision.json',
             'miniprogram/pages/discover/discover.json',
             'miniprogram/pages/discover-detail/discover-detail.json',
             'miniprogram/pages/diagnose/diagnose.json',
-            'miniprogram/data/knowledge.json',
             'miniprogram/project.config.json',
             'miniprogram/sitemap.json',
           ];

@@ -200,14 +200,6 @@ model Plant {
 
   waterSkipStreak    Int      @default(0)
 
-  /// 该植物偏好的土壤 pH 下限（0..14）；与 phPreferredMax 一起用于评估传感器 pH 读数
-
-  phPreferredMin   Float?
-
-  /// 该植物偏好的土壤 pH 上限（0..14）
-
-  phPreferredMax   Float?
-
   createdAt       DateTime        @default(now())
 
   updatedAt       DateTime        @updatedAt
