@@ -54,9 +54,6 @@
   "permission": {
     "scope.userLocation": {
       "desc": "用于保存经纬度并查询所在地天气（Open-Meteo）"
-    },
-    "scope.bluetooth": {
-      "desc": "用于发现并连接支持蓝牙低功耗（BLE）的第三方温湿度、光照等环境监测设备（按品牌适配）"
     }
   },
   "requiredPrivateInfos": ["getLocation"]

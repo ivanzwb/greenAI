@@ -33,7 +33,7 @@
       <text class="index-weather__sep">·</text>
       <text class="index-weather__humid">湿度 {{weatherCurrent.relativeHumidity}}%</text>
     </view>
-    <view wx:if="{{forecastDays.length}}" class="index-forecast">
+    <view wx:if="{{forecastDays && forecastDays.length}}" class="index-forecast">
       <view wx:for="{{forecastDays}}" wx:key="date" class="index-forecast__day">
         <text class="index-forecast__dow">{{item.dow}}</text>
         <text class="index-forecast__icon">{{item.wmoIcon}}</text>
