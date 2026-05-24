@@ -171,16 +171,18 @@ const int SOIL_WET_MIN   = 2800;
 // BH1750 光照
 #if 1  // 始终包含
 #  include <BH1750.h>
-   BH1750 lightMeter(0x23);  // 默认地址; 若 ADDR 接高则 0x5C
+    BH1750 lightMeter(0x23);  // 默认地址; 若 ADDR 接高则 0x5C
 
-   bool bh1750Init() {
-       if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, &Wire)) {
-           return true;
-       }
-       // 尝试第二个地址
-       lightMeter = BH1750(0x5C);
-       return lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, &Wire);
-   }
+    bool bh1750Init() {
+        if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x23, &Wire)) {
+            return true;
+        }
+        // 尝试第二个地址
+        if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x5C, &Wire)) {
+            return true;
+        }
+        return false;
+    }
 #endif
 
 // SHT4x 温湿度
@@ -217,22 +219,30 @@ struct SensorData {
 // ============================================================
 SensorData readAllSensors() {
     SensorData d;
+    static bool shtOk = true;  // try once, then stop on first failure
+    static bool bhOk  = true;
 
     // --- SHT40: 空气温湿度 ---
-    sensors_event_t humidityEvent, tempEvent;
-    if (sht4.getEvent(&humidityEvent, &tempEvent)) {
-        d.temperature = tempEvent.temperature;
-        d.humidity    = humidityEvent.relative_humidity;
-        d.sensorOK[0] = true;
-    } else {
-        d.sensorOK[0] = false;
+    if (shtOk) {
+        sensors_event_t humidityEvent, tempEvent;
+        if (sht4.getEvent(&humidityEvent, &tempEvent)) {
+            d.temperature = tempEvent.temperature;
+            d.humidity    = humidityEvent.relative_humidity;
+            d.sensorOK[0] = true;
+        } else {
+            shtOk = false;  // stop trying, saves I2C bus
+        }
     }
 
     // --- BH1750: 光照 ---
-    float lux = lightMeter.readLightLevel();
-    if (lux >= 0 && !isnan(lux)) {
-        d.lux = lux;
-        d.sensorOK[1] = true;
+    if (bhOk) {
+        float lux = lightMeter.readLightLevel();
+        if (lux >= 0 && !isnan(lux)) {
+            d.lux = lux;
+            d.sensorOK[1] = true;
+        } else {
+            bhOk = false;  // stop trying
+        }
     }
 
     // --- 电容式土壤湿度 (原始 ADC) ---
@@ -270,32 +280,31 @@ SensorData readAllSensors() {
 // ============================================================
 #if STAGE_OLED
 void displayUpdate(const SensorData& d) {
-    char buf[24];
+    char buf[32];  // Bigger buffer for UTF-8
 
     u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_wqy12_t_gb2312a);  // 12px 中文
 
     // 行 1: 温度
     if (d.sensorOK[0]) {
-        snprintf(buf, sizeof(buf), "温度 %.1f\xE2\x84\x83", d.temperature);
+        snprintf(buf, sizeof(buf), "T:%.1f C", d.temperature);
     } else {
-        snprintf(buf, sizeof(buf), "温度 --\xE2\x84\x83");
+        snprintf(buf, sizeof(buf), "T:-- C");
     }
     u8g2.drawUTF8(0, 14, buf);
 
     // 行 2: 湿度
     if (d.sensorOK[0]) {
-        snprintf(buf, sizeof(buf), "湿度 %.0f%%", d.humidity);
+        snprintf(buf, sizeof(buf), "H:%.0f%%", d.humidity);
     } else {
-        snprintf(buf, sizeof(buf), "湿度 --%%");
+        snprintf(buf, sizeof(buf), "H:--%%");
     }
     u8g2.drawUTF8(0, 29, buf);
 
     // 行 3: 光照
     if (d.sensorOK[1]) {
-        snprintf(buf, sizeof(buf), "光照 %.0f lx", d.lux);
+        snprintf(buf, sizeof(buf), "L:%.0f lx", d.lux);
     } else {
-        snprintf(buf, sizeof(buf), "光照 -- lx");
+        snprintf(buf, sizeof(buf), "L:-- lx");
     }
     u8g2.drawUTF8(0, 44, buf);
 
@@ -303,15 +312,15 @@ void displayUpdate(const SensorData& d) {
     if (d.sensorOK[2]) {
 #if STAGE_PH
         if (d.sensorOK[3]) {
-            snprintf(buf, sizeof(buf), "盆土 %d  pH %.1f", d.soilPercent, d.pH);
+            snprintf(buf, sizeof(buf), "Soil:%d pH:%.1f", d.soilPercent, d.pH);
         } else {
-            snprintf(buf, sizeof(buf), "盆土 %d  pH --", d.soilPercent);
+            snprintf(buf, sizeof(buf), "Soil:%d pH:--", d.soilPercent);
         }
 #else
-        snprintf(buf, sizeof(buf), "盆土 %d", d.soilPercent);
+        snprintf(buf, sizeof(buf), "Soil:%d", d.soilPercent);
 #endif
     } else {
-        snprintf(buf, sizeof(buf), "盆土 --");
+        snprintf(buf, sizeof(buf), "Soil:--");
     }
     u8g2.drawUTF8(0, 59, buf);
 
@@ -416,9 +425,15 @@ void ledIndicate(bool ok) {
 void i2cScan() {
     Serial.println("[I2C] Scanning...");
     byte count = 0;
+    // First test: raw begin/end without address
+    Wire.beginTransmission(0);
+    int err0 = Wire.endTransmission();
+    Serial.printf("[I2C] test: general_call err=%d (expect 2=NACK)\n", err0);
+    
     for (byte addr = 1; addr < 127; addr++) {
         Wire.beginTransmission(addr);
-        if (Wire.endTransmission() == 0) {
+        int err = Wire.endTransmission();
+        if (err == 0) {
             Serial.printf("  Found 0x%02X", addr);
             switch (addr) {
                 case 0x3C: case 0x3D: Serial.print(" (OLED)"); break;
@@ -427,10 +442,12 @@ void i2cScan() {
             }
             Serial.println();
             count++;
+        } else if (err == 2 && (addr >= 0x3C && addr <= 0x3D)) {
+            Serial.printf("  OLED range 0x%02X: NACK (err=%d)\n", addr, err);
         }
     }
     Serial.printf("[I2C] Done. %d device(s) found.\n", count);
-    delay(1000);
+    delay(500);
 }
 
 // ============================================================
@@ -449,7 +466,7 @@ void setup() {
 
     // --- I²C ---
     Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-    Wire.setClock(100000);  // 100kHz 稳定
+    Wire.setClock(50000);  // 50kHz for OLED stability
     delay(100);
     Serial.printf("[I2C] SDA=GPIO%d  SCL=GPIO%d\n", PIN_I2C_SDA, PIN_I2C_SCL);
 
@@ -470,14 +487,24 @@ void setup() {
         Serial.println("[BH1750] FAIL - 检查地址/接线");
     }
 
-    // --- 初始化 OLED (U8g2) ---
+    // --- OLED: minimal test ---
 #if STAGE_OLED
+    Wire.end();                      // reset bus
+    delay(50);
+    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+    Wire.setClock(50000);
+    delay(100);
+    
     if (u8g2.begin()) {
         Serial.println("[OLED] OK");
-        u8g2.enableUTF8Print();
-        u8g2.setFont(u8g2_font_wqy12_t_gb2312a);
+        u8g2.setContrast(1);  // minimum brightness
+        u8g2.clearBuffer();
+        u8g2.setFont(u8g2_font_6x10_tf);
+        u8g2.drawStr(5, 20, "OLED OK");
+        u8g2.sendBuffer();
+        Serial.println("[OLED] Done");
     } else {
-        Serial.println("[OLED] FAIL - 检查接线/地址");
+        Serial.println("[OLED] FAIL");
     }
 #endif
 
@@ -513,8 +540,8 @@ void loop() {
     serialPrint(d);
 #endif
 
-    // 3) OLED 刷新 (Step 6 验收)
-#if STAGE_OLED
+    // 3) OLED - disabled: testing if one-time draw stays on
+#if 0
     displayUpdate(d);
 #endif
 

@@ -4,3 +4,15 @@ dist/
 backend/.env
 .worktrees/
 miniprogram/project.private.config.json
+
+# PlatformIO
+.pio/
+
+# Test projects
+test_build/
+blink_test/
+i2c_scan/
+oled_test/
+
+# Build wrapper
+firmware/build.py
