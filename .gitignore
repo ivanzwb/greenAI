@@ -5,6 +5,9 @@ backend/.env
 .worktrees/
 miniprogram/project.private.config.json
 
+# Expo local state
+mobile/.expo/
+
 # PlatformIO
 .pio/
 
