@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "植物管家",
+    "slug": "greenai-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
