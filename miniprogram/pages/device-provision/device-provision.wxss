@@ -56,7 +56,10 @@
 .provision-actions {
   margin-top: 24rpx;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 20rpx;
+  align-items: stretch;
+  padding: 0 24rpx 48rpx;
 }
 .ga-button {
   padding: 18rpx 56rpx;
@@ -67,4 +70,9 @@
 .ga-button--primary {
   background: #2a4d3a;
   color: #fafbf9;
+}
+.ga-button--secondary {
+  border: 2rpx solid #2a4d3a;
+  color: #2a4d3a;
+  background: transparent;
 }

@@ -28,7 +28,7 @@ cp .env.example .env
 | `JWT_SECRET` | 至少 16 字符，用于签发用户 JWT |
 | `WECHAT_APPID` / `WECHAT_SECRET` | 微信小程序后台「开发 → 开发管理 → 开发设置」 |
 | `CRON_HMAC_SECRET` | 至少 16 字符；与云 Cron 共用，用于签名 `POST /internal/jobs/reminders` |
-| `SENSOR_HMAC_SECRET` | **可选**。至少 16 字符；与硬件设备共用，用于签名 `POST /internal/sensors/ingest`（设备定时上报）。未设置时该路由返回 503，养护引擎自动退化为「天气 + 用户自报」路线。与 `CRON_HMAC_SECRET` 分开，便于独立轮换。 |
+| `SENSOR_HMAC_SECRET` | **可选**。至少 16 字符；与硬件设备共用，用于签名 `POST /internal/sensors/ingest`（传感器读数）与 `POST /internal/sensors/logs`（设备运行日志）。未设置时两路由均返回 503；ingest 禁用会使养护引擎自动退化为「天气 + 用户自报」路线。与 `CRON_HMAC_SECRET` 分开，便于独立轮换。 |
 | `SUBSCRIBE_TEMPLATE_ID` | 已审核的订阅消息模板 ID，须与小程序里 `SUBSCRIBE_TEMPLATE_ID` 一致 |
 | `PORT` | API 监听端口，默认 `3000`（容器内端口；对外映射见下文） |
 | `BAIDU_API_KEY` / `BAIDU_SECRET_KEY` | **可选**。均配置时启用 **植物识别**（`POST /plants/identify`，百度 AI 图像识别-植物分类）。见 [植物识别](https://cloud.baidu.com/product/imagerecognition/plant) 开通与计费。 |

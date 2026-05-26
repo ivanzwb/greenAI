@@ -11,7 +11,7 @@ const envSchema = z.object({
   WECHAT_APPID: z.string().min(1),
   WECHAT_SECRET: z.string().min(1),
   CRON_HMAC_SECRET: z.string().min(16),
-  /** 设备端定时上报传感器读数所用 HMAC 密钥；未配置时 /internal/sensors/ingest 返回 503。 */
+  /** 设备端 HMAC 密钥：用于 POST /internal/sensors/ingest 与 POST /internal/sensors/logs；未配置时两接口均返回 503。 */
   SENSOR_HMAC_SECRET: z.string().min(16).optional(),
   SUBSCRIBE_TEMPLATE_ID: z.string().min(1),
   PORT: z.coerce.number().default(3000),

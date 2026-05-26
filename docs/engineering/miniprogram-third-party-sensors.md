@@ -88,6 +88,12 @@
 
 > **适用场景**：自研 ESP32/ESP8266/Pi 等设备，或厂商网关已知会主动 POST 我方后端；设备端有可信存储用于保管 HMAC 密钥。**不适用**于小程序直传（密钥不能下发到客户端）。
 
+### 6.0 绑定码闭环（小程序 ↔ 固件）
+
+1. 小程序（JWT）：`POST /devices/binding-codes` → `{ code, expiresAt }`（约 10 分钟，表 `DeviceBindingCode`）。
+2. 固件：SoftAP 配网页把 `code` 写入 NVS；STA 联网且 NTP 可用后 `POST {apiBase}/devices/claim-binding-code`，body `{ code, hardwareId }`（无需签名）。
+3. 服务端：消费码并 upsert `Device(userId, hardwareId)`；若该 `hardwareId` 已属于其他用户则 `409`。可选在响应中返回 `sensorKey`（与 `SENSOR_HMAC_SECRET` 相同）供设备写入 NVS，**务必全程 HTTPS**。
+
 ### 6.1 接口
 
 - 方法：`POST /internal/sensors/ingest`
@@ -114,7 +120,7 @@
 ```
 
 - `hardwareId`：设备序列号 / MAC，与 `userId` 联合唯一定位一条 `Device` 记录。
-- `userId`：出厂前在「用户绑定」流程中烧录到设备（小程序登录态拿到 `userId` → 通过 BLE/二维码灌入设备）。
+- `userId`：**推荐闭环**：用户在小程序「设置」调用 `POST /devices/binding-codes` 生成 **10 分钟有效的一次性绑定码**；自研固件在 SoftAP 配网页填写该码，STA 联网后 `POST /devices/claim-binding-code`（无需 JWT）提交 `{ code, hardwareId }`，服务端校验后 **预建 `Device` 行** 并返回 `userId`（若配置了 `SENSOR_HMAC_SECRET` 可一并返回 `sensorKey` 供设备写入 NVS）。仍支持运维在配网页 **手工写入 userId** 的旧流程，但不推荐。
 - `plantId`：**可选**。传入后服务端会校验该植物属于 `userId`，并 upsert 到 `Device.plantId`；care planning 会针对该植物汇聚本设备的读数。传 `null` 可解除绑定，不传则保持现状。未绑定植物的房间级设备也可上报，数据落库供运维查询，不会自动进入某株植物的计算。
 - `readings[]`：1–200 笔；至少包含 `tempC` / `soilMoisture` / `phLevel` / `lux` 其中之一。
   - `tempC`：环境温度 ℃（探针热敏或设备内置传感器）。
@@ -123,7 +129,39 @@
   - `lux`：光照（光敏）。
 - `measuredAt`：ISO 字符串或 Unix 秒（整数）。服务端按 `(deviceId, measuredAt)` **唯一去重**，断网回灌可放心重传。
 
-### 6.3 响应
+### 6.2a 运行日志上报（可选）
+
+- 方法：`POST /internal/sensors/logs`
+- 请求头、时钟偏差、鉴权错误、503 条件与 **§6.1 传感器 ingest 完全相同**（同一 `SENSOR_HMAC_SECRET`、同一签名串 `ts + "\n" + sha256_hex(rawBody)`）。
+
+### 6.3a 请求体（日志）
+
+```json
+{
+  "hardwareId": "esp32-aabbccddeeff",
+  "userId": "ckxxxx...",
+  "plantId": "ckyyyy...",
+  "entries": [
+    { "level": "warn", "message": "Wi-Fi 重连失败 code=201", "occurredAt": 1716710400, "meta": { "rssi": -82 } },
+    { "message": "boot fw=0.9.1" }
+  ]
+}
+```
+
+- `entries`：1–200 条；每条 `message` 必填（最长 16 000 字符）；`level` 可选，枚举 `debug` / `info` / `warn` / `error`，缺省为 `info`。
+- `occurredAt`：可选，ISO 8601 或 Unix 秒；缺省仅记录服务端入库时间。
+- `meta`：可选，最多 32 个 string 键，值为 string / number / boolean（便于固件附带版本号、错误码等）。
+- `plantId`：语义与传感器 ingest 一致（可选、可 `null` 解绑）。
+
+### 6.3b 响应（日志）
+
+```json
+{ "deviceId": "ckyyyy...", "inserted": 2 }
+```
+
+日志落库表 `DeviceIngestLog`（按设备 `deviceId` 关联，用户删除设备时级联删除）。运维或小程序可在用户登录态下调用 **`GET /devices/:id/logs?limit=50`** 拉取最近日志（设备须属于当前 JWT 用户）。
+
+### 6.3 响应（传感器读数）
 
 ```json
 { "deviceId": "ckyyyy...", "inserted": 2, "deduped": 0 }
@@ -162,7 +200,7 @@ loop every 10 minutes:
 - 后端环境变量 `SENSOR_HMAC_SECRET`（≥16 字符，未配置时路由整体禁用）。
 - 与 `CRON_HMAC_SECRET` **分离**：cron 调度器和设备权限边界不同，密钥泄露后可分别轮换。
 - 路由命名仍在 `/internal/*` 前缀下；生产部署务必确认入口网关 **不对公网无差别开放**（HMAC 是兜底，纵深防御以网络隔离为先）。
-- 数据落库：`Device(userId, hardwareId, plantId?)`、`DeviceReading(deviceId, measuredAt, tempC, soilMoisture, phLevel, lux)`；唯一约束保证回灌幂等。
+- 数据落库：`Device(userId, hardwareId, plantId?)`、`DeviceReading(...)`；唯一约束保证读数回灌幂等。运行日志为 `DeviceIngestLog(deviceId, level, message, occurredAt?, meta?)`。
 
 ### 6.7 与 careEngine 的融合策略
 
@@ -184,7 +222,7 @@ loop every 10 minutes:
 
 生效路线：增量生效。调用点在完成任务（[`POST /tasks/:id/complete`](../../backend/src/routes/tasks.ts)）、跳过任务（`POST /tasks/:id/skip`）、手动重算（[`POST /plants/:id/replan`](../../backend/src/routes/plants.ts)）三处；创建植物时由于设备还未绑定，不走传感器路线。
 
-> **部署顺序**：先 `prisma migrate deploy`（新建 `Device` / `DeviceReading` 表）→ 设定 `SENSOR_HMAC_SECRET` → 重启后端服务。后端未设定该密钥时，`/internal/sensors/ingest` 返回 503，传感器融合逻辑自动退化为原有「天气 + 用户自报」路线。
+> **部署顺序**：先 `prisma migrate deploy`（含 `Device` / `DeviceReading` / `DeviceIngestLog` 等表）→ 设定 `SENSOR_HMAC_SECRET` → 重启后端服务。后端未设定该密钥时，`/internal/sensors/ingest` 与 `/internal/sensors/logs` 均返回 503；其中 ingest 禁用会使传感器融合逻辑退化为原有「天气 + 用户自报」路线。
 
 ### 6.8 小程序「植物-传感器」展示与绑定（v0.3）
 
@@ -193,6 +231,7 @@ loop every 10 minutes:
 - **接口**：
   - `GET /plants/:id/sensor/series?hours=72`（默认 72，最大 14×24=336）——返回该植物绑定设备 **窗口内的读数序列（下采样到 ≤240 点）**、最新读数与 `phEvaluation`。
   - `GET /devices`——当前用户全部设备（含 `plantId`、`label`、`lastSeenAt`）。
+  - `GET /devices/:id/logs?limit=50`——该设备最近运行日志（需 JWT，且设备属于当前用户）。
   - `PATCH /devices/:id { plantId?, label? }`——绑定到某植物 / 解绑（`plantId: null`）/ 改名。后端校验设备与植物均归属当前用户。
 - **UI 元素**：
   - 顶部 pH 评估条（`optimal` / `too_acidic` / `too_alkaline` / `unknown`，绿/橙/紫/灰边框）。

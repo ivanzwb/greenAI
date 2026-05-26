@@ -36,6 +36,25 @@
   color: var(--ga-text-muted);
 }
 
+.settings-mt-small {
+  margin-top: 16rpx;
+}
+
+.settings-field--flat {
+  border-bottom: none;
+  padding-top: 8rpx;
+}
+
+.settings-bind-code {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  line-height: 1.5;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--ga-text);
+}
+
 .settings-mt {
   margin-top: 28rpx;
 }

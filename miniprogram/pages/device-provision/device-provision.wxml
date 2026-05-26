@@ -13,7 +13,7 @@
   </view>
 
   <view class="ga-card provision-card">
-    <text class="provision-card__kicker">配网步骤（BLE 直连）</text>
+    <text class="provision-card__kicker">配网步骤（SoftAP + 绑定码）</text>
     <block wx:for="{{steps}}" wx:key="n">
       <view class="provision-step">
         <view class="provision-step__num">{{item.n}}</view>
@@ -27,10 +27,11 @@
 
   <view class="ga-card provision-card provision-card--note">
     <text class="provision-card__kicker">说明</text>
-    <text class="provision-line">数据通路始终是「设备 → 云端」HTTPS 直连，**不依赖小程序常驻**。BLE 只在首次配网或更换路由器时短暂使用一次。</text>
+    <text class="provision-line">数据通路始终是「设备 → 云端」HTTPS 直连，不依赖小程序常驻。绑定码仅用于一次性把设备登记到你的账户。</text>
   </view>
 
   <view class="provision-actions">
-    <view class="ga-button ga-button--primary" bindtap="onContact">开始配网</view>
+    <view class="ga-button ga-button--secondary" bindtap="onGoSettings">去设置生成绑定码</view>
+    <view class="ga-button ga-button--primary" bindtap="onContact">说明与检查清单</view>
   </view>
 </view>

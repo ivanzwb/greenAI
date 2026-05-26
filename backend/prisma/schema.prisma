@@ -148,6 +148,38 @@ model User {
 
   devices   Device[]
 
+  /// 小程序生成的设备绑定码（固件 claim 后写入 userId）
+
+  deviceBindingCodes DeviceBindingCode[]
+
+}
+
+
+
+/// 一次性设备绑定码：用户在小程序生成，在设备配网页输入，联网后固件 POST claim 换 userId
+
+model DeviceBindingCode {
+
+  id        String    @id @default(cuid())
+
+  userId    String
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  code      String    @unique
+
+  expiresAt DateTime
+
+  usedAt    DateTime?
+
+  createdAt DateTime  @default(now())
+
+
+
+  @@index([userId])
+
+  @@index([expiresAt])
+
 }
 
 
@@ -252,6 +284,8 @@ model Device {
 
   readings    DeviceReading[]
 
+  ingestLogs  DeviceIngestLog[]
+
 
 
   @@unique([userId, hardwareId])
@@ -303,6 +337,34 @@ model DeviceReading {
   @@unique([deviceId, measuredAt])
 
   @@index([deviceId, measuredAt])
+
+}
+
+
+
+/// 固件经 HMAC 上报的运行/诊断日志（与传感器读数 ingest 共用密钥与鉴权方式）
+
+model DeviceIngestLog {
+
+  id         String    @id @default(cuid())
+
+  deviceId   String
+
+  device     Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  level      String    @default("info")
+
+  message    String
+
+  occurredAt DateTime?
+
+  meta       Json?
+
+  createdAt  DateTime  @default(now())
+
+
+
+  @@index([deviceId, createdAt])
 
 }
 

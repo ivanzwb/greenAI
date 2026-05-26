@@ -80,6 +80,26 @@
     </view>
   </view>
 
+  <view class="ga-section-title">传感器绑定码</view>
+  <view class="settings-card ga-card">
+    <text class="settings-hint-inline">在自研设备 SoftAP 配网页中填写「绑定码」，设备联网后会自动领取你的账户并完成上报密钥写入（与固件 `greenai_api` claim 对接）。</text>
+    <view class="settings-field">
+      <text class="settings-label">当前用户 ID（脱敏展示）</text>
+      <text class="settings-mono">{{userIdPreview}}</text>
+      <view class="settings-btn settings-btn--ghost settings-mt-small" bindtap="onCopyUserId">复制完整用户 ID</view>
+    </view>
+    <view class="settings-primary settings-mt" bindtap="onCreateBindCode">生成新绑定码</view>
+    <view wx:if="{{bindLoading}}" class="settings-hint-inline settings-mt">生成中…</view>
+    <block wx:if="{{bindCode}}">
+      <view class="settings-field settings-field--flat">
+        <text class="settings-label">本次绑定码（约 10 分钟内有效）</text>
+        <text class="settings-bind-code" selectable="true">{{bindCode}}</text>
+        <text class="settings-hint-inline">过期时间 {{bindExpiresText}}</text>
+        <view class="settings-btn settings-btn--primary settings-mt-small" bindtap="onCopyBindCode">复制绑定码</view>
+      </view>
+    </block>
+  </view>
+
   <view class="ga-section-title">第三方环境监测</view>
   <view class="settings-card ga-card">
     <text class="settings-hint-inline">硬件采用「设备直连云端 HTTPS」上报。配网（让设备拿到家里 Wi-Fi 密码）一次完成；之后所有读数自动入库并按植物展示在「植物 → 传感器与图表」中。</text>

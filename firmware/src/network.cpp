@@ -1,4 +1,5 @@
 #include "config.h"
+#include "greenai_api.h"
 #include "network.h"
 
 #if STAGE_WIFI_PROV
@@ -33,7 +34,6 @@ static ProvState     g_state       = PROV_BOOT;
 static unsigned long g_wifiStartMs = 0;
 static bool          g_apActive    = false;
 static String        g_lastError;
-static String        g_svrUrl      = "http://192.168.1.100:8080/api/sensor";
 static String        g_ssid;
 static String        g_pass;
 
@@ -137,9 +137,24 @@ static const char PAGE_HTML[] PROGMEM = R"HTML(
     <input id="pass" type="password">
     <label>
      <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1 17.9A8 8 0 0 1 4.1 13H8c.1 2 .5 3.9 1.1 5.5-.6.5-1.1 1-1.1 1.4zM8 11c.1-1.7.5-3.3 1-4.6.5-.4 1-.9 1.6-1.4-.5 1.7-.6 4-.6 6zm5 8.9c-.4 0-.9-.5-1.5-1.1.7-1.4 1.1-3 1.2-4.8h3.9a8 8 0 0 1-3.6 5.9z"/></svg>
-     后端 URL (可选)
+     后端 API 根地址 (无路径，如 http://192.168.1.10:3000)
     </label>
-    <input id="url" placeholder="http://192.168.1.100:8080/api/sensor">
+    <input id="url" placeholder="http://192.168.1.10:3000">
+    <label>
+     <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 12c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>
+     绑定码（在小程序「设置」里生成，10 分钟内有效）
+    </label>
+    <input id="bind" placeholder="16 位十六进制" autocomplete="off">
+    <label>
+     <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zm-6 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM9 8V6a3 3 0 0 1 6 0v2H9z"/></svg>
+     上报密钥（可选；服务端未自动下发时填写，与 SENSOR_HMAC_SECRET 相同）
+    </label>
+    <input id="key" type="password" placeholder="勿泄露" autocomplete="new-password">
+    <label>
+     <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 22c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9zm0-20C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+     植物 ID (可选，绑定到某株植物时填写)
+    </label>
+    <input id="plant" placeholder="留空表示房间级设备" autocomplete="off">
     <button type="submit">
      <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
      保存并连接
@@ -179,7 +194,7 @@ function scan(){
 function pick(s){el('ssid').value=s;el('pass').focus()}
 function submit_(){
  const r=el('result');r.className='status info';r.textContent='⏳ 提交中…';
- const body=new URLSearchParams({s:el('ssid').value,p:el('pass').value,u:el('url').value});
+ const body=new URLSearchParams({s:el('ssid').value,p:el('pass').value,u:el('url').value,bind:el('bind').value,key:el('key').value,plant:el('plant').value});
  fetch('/save',{method:'POST',body}).then(r=>r.json()).then(d=>{
   if(d.ok){r.className='status ok';r.textContent='✓ 已保存，正在连接 WiFi…';
     setTimeout(poll,3000)}
@@ -247,17 +262,27 @@ static void hScan() {
 static void hSave() {
     String ssid = g_http.arg("s");
     String pass = g_http.arg("p");
-    String url  = g_http.arg("u");
+    String url   = g_http.arg("u");
+    String bind  = g_http.arg("bind");
+    String key   = g_http.arg("key");
+    String plant = g_http.arg("plant");
     if (ssid.length() == 0) {
         g_http.send(200, "application/json", "{\"ok\":false,\"err\":\"SSID empty\"}");
         return;
     }
     g_ssid = ssid; g_pass = pass;
-    if (url.length()) g_svrUrl = url;
 
     g_prefs.putString("ssid", g_ssid);
     g_prefs.putString("pass", g_pass);
-    g_prefs.putString("serverUrl", g_svrUrl);
+    if (url.length()) g_prefs.putString("apiBase", url);
+    if (bind.length() >= 8) {
+        g_prefs.putString("bindCode", bind);
+        g_prefs.remove("userId");
+        if (key.length() == 0) g_prefs.remove("sensorKey");
+    }
+    if (key.length() > 0) g_prefs.putString("sensorKey", key);
+    g_prefs.putString("plantId", plant);
+    greenaiReloadConfig(g_prefs);
 
     g_http.send(200, "application/json", "{\"ok\":true}");
 
@@ -329,10 +354,10 @@ static void stopSoftAP() {
 //  STA logic
 // ============================================================
 static bool loadSavedCreds() {
-    g_ssid   = g_prefs.getString("ssid", "");
+    g_ssid = g_prefs.getString("ssid", "");
     if (g_ssid.length() == 0) return false;
-    g_pass   = g_prefs.getString("pass", "");
-    g_svrUrl = g_prefs.getString("serverUrl", g_svrUrl);
+    g_pass = g_prefs.getString("pass", "");
+    greenaiReloadConfig(g_prefs);
     return true;
 }
 
@@ -341,6 +366,7 @@ static bool loadSavedCreds() {
 // ============================================================
 void wifiProvSetup() {
     g_prefs.begin(NVS_NS, false);
+    greenaiReloadConfig(g_prefs);
     Serial.printf("[WiFi] MAC: %s\n", WiFi.macAddress().c_str());
 
     if (loadSavedCreds()) {
@@ -402,7 +428,13 @@ void wifiClearCreds() {
     g_prefs.remove("ssid");
     g_prefs.remove("pass");
     g_prefs.remove("serverUrl");
-    Serial.println("[NVS] WiFi credentials cleared");
+    g_prefs.remove("apiBase");
+    g_prefs.remove("bindCode");
+    g_prefs.remove("userId");
+    g_prefs.remove("sensorKey");
+    g_prefs.remove("plantId");
+    greenaiReloadConfig(g_prefs);
+    Serial.println("[NVS] WiFi + cloud credentials cleared");
 }
 
 // ============================================================
@@ -410,32 +442,12 @@ void wifiClearCreds() {
 // ============================================================
 #  if STAGE_WIFI_UPLOAD
 
-static unsigned long g_lastUpload = 0;
-static const unsigned long UPLOAD_INT = 15000UL;
-
 void uploadSensorData(const SensorData& d) {
     if (!wifiIsConnected()) return;
-    if (g_svrUrl.length() == 0) return;
-    unsigned long now = millis();
-    if (now - g_lastUpload < UPLOAD_INT) return;
-    g_lastUpload = now;
-
-    HTTPClient http;
-    http.begin(g_svrUrl);
-    http.addHeader("Content-Type", "application/json");
-    String json  = "{";
-    json += "\"temperature\":"   + String(d.temperature, 1) + ",";
-    json += "\"humidity\":"      + String(d.humidity, 0)    + ",";
-    json += "\"lux\":"           + String(d.lux, 0)         + ",";
-    json += "\"soilPercent\":"   + String(d.soilPercent)    + ",";
-    json += "\"soilRaw\":"       + String(d.soilRaw);
-    if (d.sensorOK[3] && !isnan(d.pH)) json += ",\"pH\":" + String(d.pH, 1);
-    json += ",\"mac\":\"" + WiFi.macAddress() + "\"";
-    json += "}";
-    int code = http.POST(json);
-    if (code > 0) Serial.printf("[UPLOAD] HTTP %d\n", code);
-    else          Serial.printf("[UPLOAD] Error: %s\n", http.errorToString(code).c_str());
-    http.end();
+    greenaiTryClaimBindingCode(g_prefs);
+    greenaiMarkBootOnce();
+    greenaiFlushLogs(millis());
+    greenaiMaybePostSensor(d, millis());
 }
 
 #  else

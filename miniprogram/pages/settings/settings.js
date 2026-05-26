@@ -1,4 +1,4 @@
-const { request } = require("../../utils/api.js");
+const { request, getUserId, setUserId } = require("../../utils/api.js");
 
 /** 与首页 index.js 一致：已有位置后不再弹出「去设位置」引导。 */
 const LOCATION_INTRO_MODAL_KEY = "greenai_location_intro_modal_done";
@@ -26,6 +26,20 @@ function locSummary(me) {
 function locationReadable(me) {
   const label = me && me.locationLabel != null ? String(me.locationLabel).trim() : "";
   return label.length > 0 ? label : "";
+}
+
+function userIdPreview(id) {
+  if (!id || typeof id !== "string") return "—";
+  if (id.length <= 14) return id;
+  return `${id.slice(0, 6)}…${id.slice(-4)}`;
+}
+
+function formatBindExpire(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  const p = (n) => (n < 10 ? `0${n}` : `${n}`);
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 function formatForecastDay(d) {
@@ -92,6 +106,11 @@ Page({
     aspectLabels: WINDOW_ASPECT_LABELS,
     aspectIndex: 0,
     airConditioning: false,
+    userIdPreview: "—",
+    bindCode: "",
+    bindExpires: "",
+    bindExpiresText: "",
+    bindLoading: false,
   },
   async onShow() {
     await this.loadMeAndWeather();
@@ -111,6 +130,7 @@ Page({
       const wa = me.windowAspect || "unknown";
       const ai = WINDOW_ASPECT_KEYS.indexOf(wa);
       if (ai >= 0) aspectIndex = ai;
+      if (me.id) setUserId(me.id);
       this.setData({
         labels,
         tzIndex: idx,
@@ -119,6 +139,7 @@ Page({
         needLocationTip: !hasLoc,
         airConditioning: Boolean(me.airConditioning),
         aspectIndex,
+        userIdPreview: userIdPreview(me.id),
         weatherLine: "",
         forecastHint: "",
         forecastDays: [],
@@ -279,5 +300,37 @@ Page({
    */
   onOpenProvision() {
     wx.navigateTo({ url: "/pages/device-provision/device-provision" });
+  },
+  async onCreateBindCode() {
+    this.setData({ bindLoading: true });
+    try {
+      const r = await request({ path: "/devices/binding-codes", method: "POST" });
+      this.setData({
+        bindCode: r.code || "",
+        bindExpires: r.expiresAt || "",
+        bindExpiresText: formatBindExpire(r.expiresAt),
+        bindLoading: false,
+      });
+      wx.showToast({ title: "已生成", icon: "success" });
+    } catch (e) {
+      this.setData({ bindLoading: false });
+      wx.showToast({ title: "生成失败，请登录后重试", icon: "none" });
+    }
+  },
+  onCopyBindCode() {
+    const c = this.data.bindCode;
+    if (!c) {
+      wx.showToast({ title: "请先生成绑定码", icon: "none" });
+      return;
+    }
+    wx.setClipboardData({ data: c });
+  },
+  onCopyUserId() {
+    const u = getUserId();
+    if (!u) {
+      wx.showToast({ title: "无用户 ID", icon: "none" });
+      return;
+    }
+    wx.setClipboardData({ data: u });
   },
 });

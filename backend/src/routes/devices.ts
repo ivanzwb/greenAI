@@ -14,6 +14,10 @@ const seriesQuery = z.object({
   hours: z.coerce.number().int().min(1).max(24 * 14).optional(),
 });
 
+const deviceLogsQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional().default(50),
+});
+
 const devicesRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", authenticate);
 
@@ -31,6 +35,32 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
         createdAt: true,
       },
     });
+  });
+
+  /** 设备经 HMAC 上报后落库的最近若干条运行日志（当前用户名下设备）。 */
+  app.get("/devices/:id/logs", async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const device = await app.prisma.device.findFirst({
+      where: { id, userId: req.userId! },
+      select: { id: true },
+    });
+    if (!device) return reply.status(404).send({ error: "not_found" });
+    const q = deviceLogsQuery.safeParse(req.query ?? {});
+    if (!q.success) return reply.status(400).send({ error: "invalid_query" });
+    const logs = await app.prisma.deviceIngestLog.findMany({
+      where: { deviceId: id },
+      orderBy: { createdAt: "desc" },
+      take: q.data.limit,
+      select: {
+        id: true,
+        level: true,
+        message: true,
+        occurredAt: true,
+        meta: true,
+        createdAt: true,
+      },
+    });
+    return { logs };
   });
 
   /** 重命名 / 绑定 / 解绑设备。 */

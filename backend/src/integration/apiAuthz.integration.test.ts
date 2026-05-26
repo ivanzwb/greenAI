@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import prismaPlugin from "../plugins/prisma.js";
+import deviceBindingRoutes from "../routes/deviceBinding.js";
 import internalJobsRoutes from "../routes/internalJobs.js";
 import plantsRoutes from "../routes/plants.js";
 import sensorIngestRoutes from "../routes/sensorIngest.js";
@@ -295,6 +296,193 @@ describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
       expect((replay.json() as { deduped: number }).deduped).toBe(2);
     } finally {
       await app!.prisma.user.delete({ where: { id: user.id } });
+    }
+  });
+
+  it("POST /internal/sensors/logs returns 401 when signature invalid", async () => {
+    const res = await app!.inject({
+      method: "POST",
+      url: "/internal/sensors/logs",
+      headers: {
+        "content-type": "application/json",
+        "x-timestamp": String(Math.floor(Date.now() / 1000)),
+        "x-signature": "00".repeat(32),
+      },
+      payload: JSON.stringify({
+        hardwareId: "test-hw",
+        userId: "test-user",
+        entries: [{ message: "hello" }],
+      }),
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toMatchObject({ error: "invalid_signature" });
+  });
+
+  it("POST /internal/sensors/logs accepts a correctly signed batch", async () => {
+    const user = await app!.prisma.user.create({
+      data: { openid: `it-devlog-${randomUUID()}` },
+    });
+    try {
+      const body = JSON.stringify({
+        hardwareId: "hw-log-xyz",
+        userId: user.id,
+        entries: [
+          {
+            level: "warn",
+            message: "wifi flap",
+            occurredAt: Math.floor(Date.now() / 1000),
+          },
+          { message: "boot ok", meta: { fw: "0.9.1" } },
+        ],
+      });
+      const ts = String(Math.floor(Date.now() / 1000));
+      const crypto = await import("node:crypto");
+      const bodyHash = crypto
+        .createHash("sha256")
+        .update(body, "utf8")
+        .digest("hex");
+      const sig = crypto
+        .createHmac("sha256", process.env.SENSOR_HMAC_SECRET as string)
+        .update(`${ts}\n${bodyHash}`)
+        .digest("hex");
+
+      const res = await app!.inject({
+        method: "POST",
+        url: "/internal/sensors/logs",
+        headers: {
+          "content-type": "application/json",
+          "x-timestamp": ts,
+          "x-signature": sig,
+        },
+        payload: body,
+      });
+      expect(res.statusCode).toBe(200);
+      const json = res.json() as { deviceId: string; inserted: number };
+      expect(json.inserted).toBe(2);
+      expect(json.deviceId).toMatch(/.+/);
+
+      const dev = await app!.prisma.device.findUnique({
+        where: {
+          userId_hardwareId: { userId: user.id, hardwareId: "hw-log-xyz" },
+        },
+        select: { id: true },
+      });
+      expect(dev).not.toBeNull();
+      const rows = await app!.prisma.deviceIngestLog.findMany({
+        where: { deviceId: dev!.id },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(rows).toHaveLength(2);
+      expect(rows[0]!.level).toBe("warn");
+      expect(rows[1]!.level).toBe("info");
+      expect(rows[1]!.meta).toEqual({ fw: "0.9.1" });
+    } finally {
+      await app!.prisma.user.delete({ where: { id: user.id } });
+    }
+  });
+});
+
+describe.skipIf(!runIntegration)("API device binding code", () => {
+  let app: FastifyInstance | undefined;
+
+  beforeAll(async () => {
+    app = await buildApp(deviceBindingRoutes);
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
+  });
+
+  it("POST /devices/claim-binding-code creates Device after binding-codes", async () => {
+    const user = await app!.prisma.user.create({
+      data: { openid: `it-bind-${randomUUID()}` },
+    });
+    try {
+      const token = signUserToken(user.id, process.env.JWT_SECRET as string);
+      const gen = await app!.inject({
+        method: "POST",
+        url: "/devices/binding-codes",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(gen.statusCode).toBe(200);
+      const { code } = gen.json() as { code: string };
+      expect(code.length).toBeGreaterThanOrEqual(8);
+
+      const claim = await app!.inject({
+        method: "POST",
+        url: "/devices/claim-binding-code",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({
+          code,
+          hardwareId: "hw-claim-integration-01",
+        }),
+      });
+      expect(claim.statusCode).toBe(200);
+      const body = claim.json() as { ok: boolean; userId: string; sensorKey?: string };
+      expect(body.ok).toBe(true);
+      expect(body.userId).toBe(user.id);
+      if (process.env.SENSOR_HMAC_SECRET) {
+        expect(body.sensorKey).toBe(process.env.SENSOR_HMAC_SECRET);
+      }
+
+      const dev = await app!.prisma.device.findUnique({
+        where: {
+          userId_hardwareId: {
+            userId: user.id,
+            hardwareId: "hw-claim-integration-01",
+          },
+        },
+      });
+      expect(dev).not.toBeNull();
+
+      const replay = await app!.inject({
+        method: "POST",
+        url: "/devices/claim-binding-code",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({
+          code,
+          hardwareId: "hw-claim-integration-01",
+        }),
+      });
+      expect(replay.statusCode).toBe(404);
+    } finally {
+      await app!.prisma.user.delete({ where: { id: user.id } });
+    }
+  });
+
+  it("POST /devices/claim-binding-code 409 when hardwareId belongs to another user", async () => {
+    const userA = await app!.prisma.user.create({
+      data: { openid: `it-binda-${randomUUID()}` },
+    });
+    const userB = await app!.prisma.user.create({
+      data: { openid: `it-bindb-${randomUUID()}` },
+    });
+    const hw = `hw-dispute-${randomUUID().slice(0, 8)}`;
+    try {
+      await app!.prisma.device.create({
+        data: { userId: userA.id, hardwareId: hw },
+      });
+      const tokenB = signUserToken(userB.id, process.env.JWT_SECRET as string);
+      const gen = await app!.inject({
+        method: "POST",
+        url: "/devices/binding-codes",
+        headers: { authorization: `Bearer ${tokenB}` },
+      });
+      const { code } = gen.json() as { code: string };
+
+      const claim = await app!.inject({
+        method: "POST",
+        url: "/devices/claim-binding-code",
+        headers: { "content-type": "application/json" },
+        payload: JSON.stringify({ code, hardwareId: hw }),
+      });
+      expect(claim.statusCode).toBe(409);
+      expect(claim.json()).toMatchObject({
+        error: "hardware_id_bound_to_other_user",
+      });
+    } finally {
+      await app!.prisma.user.delete({ where: { id: userA.id } });
+      await app!.prisma.user.delete({ where: { id: userB.id } });
     }
   });
 });

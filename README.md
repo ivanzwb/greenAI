@@ -39,11 +39,15 @@
 | POST | `/soil/estimate-photo` | 土壤照片 LLM 分析 |
 | GET | `/knowledge/search?q=` | 养护知识搜索 |
 | GET | `/devices` | 当前用户全部传感器设备 |
+| GET | `/devices/:id/logs` | 当前用户某设备的最近运行日志（JWT，`?limit=` 默认 50，最大 200）|
 | PATCH | `/devices/:id` | 设备绑定 / 解绑植物、改名 |
+| POST | `/devices/binding-codes` | 登录用户生成一次性设备绑定码（自研固件 claim）|
+| POST | `/devices/claim-binding-code` | 固件用绑定码 + hardwareId 换 userId，预建 `Device`（可选返回 `sensorKey`）|
 | GET | `/plants/:id/sensor/series` | 植物绑定设备的近期读数序列（默认 72h，下采样 ≤240 点）|
 | GET | `/metrics/summary` | 内部统计概览 |
 | POST | `/internal/reminders` | HMAC 鉴权的内部提醒任务 |
 | POST | `/internal/sensors/ingest` | 设备侧 HMAC 上报传感器读数（温/湿/pH/光照，幂等）|
+| POST | `/internal/sensors/logs` | 设备侧 HMAC 上报运行/诊断日志（与 ingest 共用签名与密钥）|
 
 ### 养护引擎
 
@@ -172,7 +176,7 @@ docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build a
 | `DATABASE_URL` | ✅ | Postgres 连接串 |
 | `POSTGRES_PASSWORD` | ✅ | Compose 部署时 Postgres 密码 |
 | `CRON_HMAC_SECRET` | ✅ | 内部任务 HMAC 签名密钥 |
-| `SENSOR_HMAC_SECRET` | 否 | 传感器 ingest HMAC 密钥（不设则 `/internal/sensors/ingest` 返回 503，融合退化为原路线）|
+| `SENSOR_HMAC_SECRET` | 否 | 传感器读数与设备日志 ingest 共用 HMAC 密钥（不设则 `/internal/sensors/ingest` 与 `/internal/sensors/logs` 返回 503，融合退化为原路线）|
 | `SUBSCRIBE_TEMPLATE_ID` | ✅ | 微信订阅消息模板 ID |
 | `PORT` | 否 | API 监听端口（默认 3000） |
 | `BAIDU_API_KEY` | 否 | 百度 AI 植物识别（需同时填 `BAIDU_SECRET_KEY`） |

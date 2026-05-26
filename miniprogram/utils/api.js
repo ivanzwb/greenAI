@@ -30,6 +30,14 @@ function setToken(token) {
   wx.setStorageSync("token", token);
 }
 
+function getUserId() {
+  return wx.getStorageSync("userId") || "";
+}
+
+function setUserId(id) {
+  wx.setStorageSync("userId", id ? String(id) : "");
+}
+
 /**
  * Report subscribe dialog outcome to the API (call from wx.requestSubscribeMessage success).
  * @param {Record<string, string>} res
@@ -49,5 +57,7 @@ module.exports = {
   SUBSCRIBE_TEMPLATE_ID,
   request,
   setToken,
+  getUserId,
+  setUserId,
   reportSubscribeFromWxResult,
 };
