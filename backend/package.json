@@ -25,7 +25,7 @@
     "geo-tz": "^8.1.7",
     "jsonwebtoken": "^9.0.2",
     "undici": "^6.21.0",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
