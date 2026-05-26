@@ -44,6 +44,7 @@ void setup() {
 
     pinMode(PIN_LED_BUILTIN, OUTPUT);
     digitalWrite(PIN_LED_BUILTIN, LOW);
+    pinMode(PIN_BOOT_BUTTON, INPUT_PULLUP);
 
     // --- I²C 总线恢复 ---
     i2cBusRecover(PIN_SHT_SDA,  PIN_SHT_SCL);
@@ -70,6 +71,41 @@ void setup() {
 }
 
 // ============================================================
+//  BOOT 按钮长按清凭证
+// ============================================================
+static void checkBootButton() {
+    static unsigned long pressStart = 0;
+    static bool          fired      = false;
+    bool pressed = (digitalRead(PIN_BOOT_BUTTON) == LOW);
+
+    if (pressed) {
+        if (pressStart == 0) {
+            pressStart = millis();
+            Serial.println("[BOOT] button pressed, hold 5s to clear WiFi creds...");
+        }
+        unsigned long held = millis() - pressStart;
+        // 闪烁 LED 表示正在计时
+        digitalWrite(PIN_LED_BUILTIN, (held / 200) & 1 ? HIGH : LOW);
+        if (!fired && held >= BOOT_LONG_PRESS_MS) {
+            fired = true;
+            digitalWrite(PIN_LED_BUILTIN, HIGH);
+            Serial.println("[BOOT] LONG PRESS — clearing creds and rebooting...");
+            wifiClearCreds();
+            delay(500);
+            ESP.restart();
+        }
+    } else {
+        if (pressStart != 0) {
+            unsigned long held = millis() - pressStart;
+            Serial.printf("[BOOT] released after %lu ms\n", held);
+            digitalWrite(PIN_LED_BUILTIN, LOW);
+        }
+        pressStart = 0;
+        fired      = false;
+    }
+}
+
+// ============================================================
 //  Loop
 // ============================================================
 static unsigned long lastSensorMillis = 0;
@@ -77,6 +113,7 @@ static const unsigned long SENSOR_INTERVAL_MS = 2000;
 static SensorData lastData;
 
 void loop() {
+    checkBootButton();
     wifiProvLoop();
 
     unsigned long now = millis();

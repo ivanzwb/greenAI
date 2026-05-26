@@ -7,7 +7,7 @@
 #define STAGE_OLED         1
 #define STAGE_TTS          0
 #define STAGE_PH           1
-#define STAGE_BLE_WIFI     1
+#define STAGE_WIFI_PROV    1
 #define STAGE_WIFI_UPLOAD  1
 
 #define TTS_MODEL_SYN6288   0
@@ -35,6 +35,12 @@
 
 // 板载 LED
 #define PIN_LED_BUILTIN    48
+
+// BOOT 按钮（ESP32-S3-DevKitC 默认是 GPIO0，低电平按下）
+#define PIN_BOOT_BUTTON    0
+
+// 长按 BOOT 多少毫秒触发清凭证 + 重启
+#define BOOT_LONG_PRESS_MS 5000UL
 
 // ============================================================
 //  Sensor Constants
