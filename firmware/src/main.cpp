@@ -25,8 +25,9 @@ static void serialPrint(const SensorData& d) {
     Serial.printf("T=%.1f,H=%.0f%%,Lux=%.0f,Soil=%d(%d%%),",
                   d.temperature, d.humidity, d.lux, d.soilRaw, d.soilPercent);
 #if STAGE_PH
+    Serial.printf("phRaw=%d,", d.phRaw);
     if (d.sensorOK[3]) Serial.printf("pH=%.1f", d.pH);
-    else               Serial.print("pH=--");
+    else               Serial.print("pH=--(rail)");
 #endif
     Serial.println();
 }

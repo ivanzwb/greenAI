@@ -78,6 +78,19 @@ static float PH_OFFSET = 0.0;
 #endif
 
 // ============================================================
+//  土壤湿度（与 test_soil 相同标定：电容 V2.0 @ 3.3V，raw 大=干）
+// ============================================================
+static int soilMoisturePercentFromRaw(int raw) {
+    int pct = map(raw, SOIL_ADC_DRY, SOIL_ADC_WET, 0, 100);
+    return constrain(pct, 0, 100);
+}
+
+static bool soilRawLooksValid(int raw) {
+    // 浮空/未接时常见贴 0 或 4095；有效读数应落在标定区间附近
+    return raw > 200 && raw < 4050;
+}
+
+// ============================================================
 //  Global state
 // ============================================================
 bool g_sht3xAvailable  = false;
@@ -94,7 +107,11 @@ bool initSensors() {
     }
 
     analogReadResolution(12);
-    Serial.printf("[ADC] Soil=GPIO%d, pH=GPIO%d\n", PIN_SOIL_MOISTURE, PIN_PH);
+    analogSetAttenuation(ADC_11db);
+    Serial.printf("[ADC] Soil=GPIO%d, pH=GPIO%d, 12-bit 11dB\n",
+                  PIN_SOIL_MOISTURE, PIN_PH);
+    Serial.printf("[ADC] Soil cal: dry>=%d wet<=%d (see test_soil)\n",
+                  SOIL_ADC_DRY, SOIL_ADC_WET);
     return g_sht3xAvailable || g_bh1750Available;
 }
 
@@ -127,26 +144,48 @@ SensorData readAllSensors() {
         }
     }
 
-    d.soilRaw = analogRead(PIN_SOIL_MOISTURE);
-    d.sensorOK[2] = true;
-    if (d.soilRaw <= SOIL_DRY_MAX) {
-        d.soilPercent = 0;
-    } else if (d.soilRaw >= SOIL_WET_MIN) {
-        d.soilPercent = 99;
-    } else {
-        d.soilPercent = map(d.soilRaw, SOIL_DRY_MAX, SOIL_WET_MIN, 0, 99);
-        d.soilPercent = constrain(d.soilPercent, 0, 99);
-    }
-
 #if STAGE_PH
     int phRaw = analogRead(PIN_PH);
-    if (phRaw > 0) {
+    d.phRaw   = phRaw;
+    // 引脚浮空 / 探头未接时 ADC 会贴近 0 或 4095，视为无效。
+    if (phRaw > 20 && phRaw < 4080) {
         float voltage = phRaw * (3.3f / 4095.0f) * PH_VOLTAGE_DIVISOR;
         d.pH = PH_SLOPE * voltage + PH_OFFSET;
         d.pH = constrain(d.pH, 0.0f, 14.0f);
         d.sensorOK[3] = true;
     }
 #endif
+
+    // —— 土壤湿度：先读 pH 再 flush + 中值采样（与 test_soil 同标定，多采抑制噪声）——
+    {
+        for (int i = 0; i < 5; i++) {
+            (void)analogRead(PIN_SOIL_MOISTURE);
+            delayMicroseconds(200);
+        }
+
+        const int N = 25;
+        int samples[N];
+        for (int i = 0; i < N; i++) {
+            samples[i] = analogRead(PIN_SOIL_MOISTURE);
+            delay(4);
+        }
+        for (int i = 1; i < N; i++) {
+            int v = samples[i], j = i - 1;
+            while (j >= 0 && samples[j] > v) { samples[j + 1] = samples[j]; j--; }
+            samples[j + 1] = v;
+        }
+        int median = samples[N / 2];
+
+        static bool  s_soilInit = false;
+        static float s_soilFilt = 0.0f;
+        if (!s_soilInit) { s_soilFilt = (float)median; s_soilInit = true; }
+        else             { s_soilFilt = 0.15f * (float)median + 0.85f * s_soilFilt; }
+        int raw = (int)(s_soilFilt + 0.5f);
+
+        d.soilRaw     = raw;
+        d.soilPercent = soilMoisturePercentFromRaw(raw);
+        d.sensorOK[2] = soilRawLooksValid(raw);
+    }
 
     return d;
 }
