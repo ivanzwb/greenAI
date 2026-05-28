@@ -48,3 +48,8 @@
 // 电容式 V2.0 @ 3.3V：raw 越大越干（本探头实测：空气 ~3250，清水 ~1530）
 #define SOIL_ADC_DRY       3260
 #define SOIL_ADC_WET       1520
+
+// pH DFRobot 官方算法: pH = PH_SLOPE * Vmodule + PH_OFFSET
+#define PH_SLOPE                   3.5f
+#define PH_OFFSET                  0.0f
+#define PH_USE_VOLTAGE_DIVIDER_3   0   // 1 = Po 经 10k+20k 分压到 GPIO2

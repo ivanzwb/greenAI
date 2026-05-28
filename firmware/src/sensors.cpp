@@ -1,5 +1,6 @@
 #include "config.h"
 #include "sensors.h"
+#include "ph_sensor.h"
 #include "i2c_utils.h"
 #include <Wire.h>
 #include <BH1750.h>
@@ -69,15 +70,6 @@ static bool sht3xInit() {
 }
 
 // ============================================================
-//  pH 校准参数
-// ============================================================
-#if STAGE_PH
-static const float PH_VOLTAGE_DIVISOR = 3.0;
-static float PH_SLOPE  = 3.0;
-static float PH_OFFSET = 0.0;
-#endif
-
-// ============================================================
 //  土壤湿度（与 test_soil 相同标定：电容 V2.0 @ 3.3V，raw 大=干）
 // ============================================================
 static int soilMoisturePercentFromRaw(int raw) {
@@ -145,14 +137,15 @@ SensorData readAllSensors() {
     }
 
 #if STAGE_PH
-    int phRaw = analogRead(PIN_PH);
-    d.phRaw   = phRaw;
-    // 引脚浮空 / 探头未接时 ADC 会贴近 0 或 4095，视为无效。
-    if (phRaw > 20 && phRaw < 4080) {
-        float voltage = phRaw * (3.3f / 4095.0f) * PH_VOLTAGE_DIVISOR;
-        d.pH = PH_SLOPE * voltage + PH_OFFSET;
-        d.pH = constrain(d.pH, 0.0f, 14.0f);
+    int   phRawAvg = 0;
+    float phVal    = NAN;
+    d.phRaw = 0;
+    if (phReadOfficial(&phRawAvg, &phVal)) {
+        d.phRaw = phRawAvg;
+        d.pH    = phVal;
         d.sensorOK[3] = true;
+    } else if (phRawLooksValid(phRawAvg)) {
+        d.phRaw = phRawAvg;
     }
 #endif
 
