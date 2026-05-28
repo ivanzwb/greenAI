@@ -301,6 +301,10 @@ Page({
   onOpenProvision() {
     wx.navigateTo({ url: "/pages/device-provision/device-provision" });
   },
+  /** 进入设备拟人化文案设置页（浇水时的回馈语音）。 */
+  onOpenDeviceVoice() {
+    wx.navigateTo({ url: "/pages/device-voice/device-voice" });
+  },
   async onCreateBindCode() {
     this.setData({ bindLoading: true });
     try {

@@ -5,7 +5,7 @@
 // ============================================================
 #define STAGE_SERIAL       1
 #define STAGE_OLED         1
-#define STAGE_TTS          0
+#define STAGE_TTS          1
 #define STAGE_PH           1
 #define STAGE_WIFI_PROV    1
 #define STAGE_WIFI_UPLOAD  1

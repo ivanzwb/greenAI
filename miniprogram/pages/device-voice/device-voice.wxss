@@ -1,0 +1,107 @@
+.voice { padding-bottom: 64rpx; }
+
+.voice-hero { background: linear-gradient(135deg, #1c2e24 0%, #2a4d3a 100%); }
+
+.voice-card { padding: 28rpx 28rpx; }
+
+.voice-empty { padding: 40rpx 32rpx; color: #5a6660; line-height: 1.7; }
+
+.voice-picker {
+  padding: 18rpx 24rpx;
+  background: #f4f6f1;
+  border-radius: 14rpx;
+  color: #1c2e24;
+  font-size: 30rpx;
+}
+
+.voice-current {
+  margin-top: 24rpx;
+  padding: 22rpx 24rpx;
+  background: #ecf2e8;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.voice-current__label { font-size: 22rpx; color: #5a6660; }
+.voice-current__text {
+  font-size: 28rpx;
+  color: #1c2e24;
+  line-height: 1.6;
+}
+.voice-current__text--default { color: #6a7770; font-style: italic; }
+
+.voice-cat__head {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
+  margin-bottom: 16rpx;
+}
+.voice-cat__name { font-size: 30rpx; color: #1c2e24; font-weight: 600; }
+.voice-cat__desc { font-size: 22rpx; color: #8b9488; }
+
+.voice-phrase {
+  padding: 20rpx 22rpx;
+  margin: 12rpx 0;
+  background: #f4f6f1;
+  border-radius: 14rpx;
+  border: 2rpx solid transparent;
+  font-size: 28rpx;
+  color: #1c2e24;
+  line-height: 1.6;
+}
+.voice-phrase--active {
+  background: #d6e5cf;
+  border-color: #2a4d3a;
+}
+
+.voice-custom-toggle {
+  padding: 18rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+  color: #2a4d3a;
+  border: 2rpx dashed #b6c4ad;
+  border-radius: 14rpx;
+}
+.voice-textarea {
+  margin-top: 18rpx;
+  width: 100%;
+  min-height: 180rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  background: #f4f6f1;
+  border-radius: 14rpx;
+  font-size: 28rpx;
+  color: #1c2e24;
+}
+.voice-count {
+  display: block;
+  margin-top: 8rpx;
+  text-align: right;
+  font-size: 22rpx;
+  color: #8b9488;
+}
+
+.voice-actions {
+  display: flex;
+  gap: 18rpx;
+  padding: 0 32rpx;
+  margin-top: 28rpx;
+}
+.voice-btn {
+  flex: 1;
+  padding: 22rpx 0;
+  text-align: center;
+  border-radius: 14rpx;
+  font-size: 30rpx;
+}
+.voice-btn--primary { background: #2a4d3a; color: #fff; }
+.voice-btn--ghost { background: transparent; border: 2rpx solid #2a4d3a; color: #2a4d3a; }
+.voice-btn--disabled { opacity: 0.5; }
+
+.voice-hint {
+  padding: 18rpx 32rpx;
+  font-size: 22rpx;
+  color: #6a7770;
+  line-height: 1.6;
+}

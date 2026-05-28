@@ -54,6 +54,8 @@ void setup() {
     Wire.begin(PIN_SHT_SDA, PIN_SHT_SCL);
     Serial.printf("[Wire ] SDA=GPIO%d SCL=GPIO%d (SHT30 + OLED)\n", PIN_SHT_SDA, PIN_SHT_SCL);
     Wire1.begin(PIN_LIGHT_SDA, PIN_LIGHT_SCL);
+    Wire1.setClock(100000);     // BH1750 用低速更稳，避免长线/弱上拉导致 stuck
+    Wire1.setTimeOut(50);       // 单次事务最长 50ms，避免拖死主循环
     Serial.printf("[Wire1] SDA=GPIO%d SCL=GPIO%d (BH1750)\n", PIN_LIGHT_SDA, PIN_LIGHT_SCL);
     delay(50);
 
@@ -61,6 +63,10 @@ void setup() {
     displayInit();    // OLED (HW I²C, 与 SHT30 共线, 板载上拉稳定总线)
     initSensors();    // SHT30 + BH1750 + ADC 分辨率
     ttsInit();        // TTS (UART1)
+    delay(200);
+    // 启动测试：让喇叭朗读一句话 + OLED 上眨眼动画
+    ttsSpeak("植物管家已启动");
+    displayBootAnimation();
     wifiProvSetup();  // BLE 配网 / WiFi 连接
 
     Serial.println("--- Setup complete ---");
@@ -106,6 +112,36 @@ static void checkBootButton() {
 }
 
 // ============================================================
+//  浇水检测：土壤湿度从 DRY 阈值以下升到 WET 阈值以上 → 触发拟人化回馈
+// ============================================================
+static float         g_soilEma          = NAN;
+static unsigned long g_lastWaterAnnounceMs = 0;
+static const float        SOIL_EMA_ALPHA      = 0.3f;
+static const int          SOIL_DRY_PCT        = 25;     // EMA 低于此值视为干
+static const int          SOIL_WET_PCT        = 55;     // EMA 高于此值视为湿
+static const unsigned long WATER_COOLDOWN_MS  = 30000UL; // 30s 内不重复播报
+static bool g_soilWasDry = false;
+
+static void detectWatering(const SensorData& d) {
+    if (!d.sensorOK[2]) return;
+    float now_pct = (float)d.soilPercent;
+    if (isnan(g_soilEma)) g_soilEma = now_pct;
+    else                  g_soilEma = SOIL_EMA_ALPHA * now_pct + (1.0f - SOIL_EMA_ALPHA) * g_soilEma;
+
+    if (g_soilEma < SOIL_DRY_PCT) {
+        g_soilWasDry = true;
+    } else if (g_soilWasDry && g_soilEma > SOIL_WET_PCT) {
+        unsigned long now = millis();
+        if (now - g_lastWaterAnnounceMs > WATER_COOLDOWN_MS) {
+            g_lastWaterAnnounceMs = now;
+            g_soilWasDry          = false;
+            Serial.printf("[WATER] event detected, EMA=%.1f%%\n", g_soilEma);
+            ttsSpeakWatering();
+        }
+    }
+}
+
+// ============================================================
 //  Loop
 // ============================================================
 static unsigned long lastSensorMillis = 0;
@@ -125,10 +161,12 @@ void loop() {
 #if STAGE_SERIAL
         serialPrint(lastData);
 #endif
+        detectWatering(lastData);
         ttsLoop(lastData);
         uploadSensorData(lastData);
     }
 
     displayUpdate(lastData);
     delay(500);
+    yield();
 }

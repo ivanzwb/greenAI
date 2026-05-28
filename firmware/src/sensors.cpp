@@ -1,8 +1,12 @@
 #include "config.h"
 #include "sensors.h"
+#include "i2c_utils.h"
 #include <Wire.h>
 #include <BH1750.h>
 #include <DFRobot_SHT3x.h>
+
+// 提前声明（实际定义在文件后面）
+extern bool g_bh1750Available;
 
 // ============================================================
 //  BH1750 (Wire1)
@@ -13,6 +17,30 @@ static bool bh1750Init() {
     if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x23, &Wire1)) return true;
     if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE, 0x5C, &Wire1)) return true;
     return false;
+}
+
+// 当 BH1750 在 Wire1 上连续读失败，尝试解锁总线 + 重新初始化。
+// 不影响 Wire (SHT30 + OLED) 总线。
+static const int BH1750_FAIL_THRESHOLD = 3;
+static int       g_bh1750FailCount     = 0;
+static unsigned long g_bh1750LastRecoverMs = 0;
+static const unsigned long BH1750_RECOVER_COOLDOWN_MS = 5000UL;
+
+static void bh1750TryRecover() {
+    unsigned long now = millis();
+    if (now - g_bh1750LastRecoverMs < BH1750_RECOVER_COOLDOWN_MS) return;
+    g_bh1750LastRecoverMs = now;
+    Serial.println("[BH1750] read failing, recovering Wire1 bus...");
+    Wire1.end();
+    delay(5);
+    i2cBusRecover(PIN_LIGHT_SDA, PIN_LIGHT_SCL);
+    Wire1.begin(PIN_LIGHT_SDA, PIN_LIGHT_SCL);
+    Wire1.setClock(100000);
+    Wire1.setTimeOut(50);
+    delay(10);
+    g_bh1750Available = bh1750Init();
+    Serial.printf("[BH1750] recover -> %s\n", g_bh1750Available ? "OK" : "FAIL");
+    g_bh1750FailCount = 0;
 }
 
 // ============================================================
@@ -91,6 +119,11 @@ SensorData readAllSensors() {
         if (lux >= 0 && !isnan(lux)) {
             d.lux = lux;
             d.sensorOK[1] = true;
+            g_bh1750FailCount = 0;
+        } else {
+            if (++g_bh1750FailCount >= BH1750_FAIL_THRESHOLD) {
+                bh1750TryRecover();
+            }
         }
     }
 

@@ -9,6 +9,7 @@
 #include <mbedtls/sha256.h>
 
 #include "config.h"
+#include "tts.h"
 
 // ---- NVS 配置（由配网页写入）----
 static String g_apiBase;
@@ -22,6 +23,10 @@ static const unsigned long SENSOR_POST_INTERVAL_MS = 15000UL;
 
 static unsigned long g_lastLogFlushMs = 0;
 static const unsigned long LOG_FLUSH_MIN_MS = 8000UL;
+
+// ---- 设备配置周期拉取 ----
+static unsigned long g_lastConfigFetchMs = 0;
+static const unsigned long CONFIG_FETCH_INTERVAL_MS = 5UL * 60UL * 1000UL;  // 5 分钟
 
 #define LOGQ 10
 #define LOGLEN 180
@@ -157,7 +162,8 @@ void greenaiTryClaimBindingCode(Preferences& prefs) {
 }
 
 /** 与后端 verifyDeviceIngestHmac 一致：message = ts + "\\n" + sha256_hex(body) */
-static bool postJsonSigned(const String& path, const String& jsonBody, int& httpCode, String& err) {
+static bool postJsonSigned(const String& path, const String& jsonBody, int& httpCode, String& err,
+                           String* respOut = nullptr) {
   if (!greenaiIsConfigured()) {
     err = "not_configured";
     return false;
@@ -189,8 +195,11 @@ static bool postJsonSigned(const String& path, const String& jsonBody, int& http
   http.addHeader("x-signature", String(sigHex));
 
   httpCode = http.POST(jsonBody);
-  if (httpCode <= 0)
+  if (httpCode <= 0) {
     err = http.errorToString(httpCode);
+  } else if (respOut) {
+    *respOut = http.getString();
+  }
   http.end();
   return httpCode > 0;
 }
@@ -329,4 +338,55 @@ void greenaiMaybePostSensor(const SensorData& d, unsigned long nowMillis) {
     greenaiLog("warn", buf);
     Serial.printf("[greenAI] ingest FAIL http=%d err=%s\n", code, err.c_str());
   }
+}
+
+// ============================================================
+//  POST /internal/devices/config  — 拉取设备级配置 (wateringMessage)
+// ============================================================
+void greenaiMaybeFetchConfig(unsigned long nowMillis) {
+  if (!greenaiIsConfigured()) return;
+  if (!WiFi.isConnected()) return;
+  if (g_lastConfigFetchMs != 0 && (nowMillis - g_lastConfigFetchMs) < CONFIG_FETCH_INTERVAL_MS) return;
+
+  const String hid  = hardwareId();
+  const String body = String("{\"hardwareId\":\"") + jsonEscape(hid.c_str()) +
+                      String("\",\"userId\":\"") + jsonEscape(g_userId.c_str()) + String("\"}");
+
+  int    code = 0;
+  String err;
+  String resp;
+  g_lastConfigFetchMs = nowMillis;
+  if (!postJsonSigned("/internal/devices/config", body, code, err, &resp)) {
+    Serial.printf("[greenAI] config FAIL err=%s\n", err.c_str());
+    return;
+  }
+  if (code < 200 || code >= 300) {
+    Serial.printf("[greenAI] config http=%d\n", code);
+    return;
+  }
+
+  // 提取 wateringMessage（字符串）。null 时函数返回 false，表示"无自定义"。
+  String wm;
+  bool hasCustom = extractJsonStringField(resp, "wateringMessage", wm);
+
+  Preferences p;
+  if (!p.begin("plantguard", /*readOnly=*/false)) {
+    Serial.println("[greenAI] config: NVS open fail");
+    return;
+  }
+  const String old = p.getString("waterMsg", "");
+  if (hasCustom) {
+    if (old != wm) {
+      p.putString("waterMsg", wm);
+      Serial.printf("[greenAI] waterMsg updated (%u bytes)\n", (unsigned)wm.length());
+      ttsInvalidateConfig();
+    }
+  } else {
+    if (old.length() > 0) {
+      p.remove("waterMsg");
+      Serial.println("[greenAI] waterMsg cleared -> fallback to firmware default");
+      ttsInvalidateConfig();
+    }
+  }
+  p.end();
 }

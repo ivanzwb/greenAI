@@ -8,6 +8,13 @@ const patchBody = z.object({
   label: z.string().max(60).nullable().optional(),
   /** 绑定到的植物 id；传 null 解除绑定；不传则不改 */
   plantId: z.string().min(1).max(64).nullable().optional(),
+  /**
+   * 浇水时设备朗读的拟人化文案。
+   * - 传 string：保存为该值（最长 200 字符）
+   * - 传 null：清空（设备回退到固件内置默认句）
+   * - 不传：保持不变
+   */
+  wateringMessage: z.string().max(200).nullable().optional(),
 });
 
 const seriesQuery = z.object({
@@ -31,6 +38,7 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
         hardwareId: true,
         label: true,
         plantId: true,
+        wateringMessage: true,
         lastSeenAt: true,
         createdAt: true,
       },
@@ -76,7 +84,7 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
     });
     if (!device) return reply.status(404).send({ error: "not_found" });
 
-    const data: { label?: string | null; plantId?: string | null } = {};
+    const data: { label?: string | null; plantId?: string | null; wateringMessage?: string | null } = {};
     if (parsed.data.label !== undefined) {
       data.label = parsed.data.label;
     }
@@ -94,6 +102,10 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
         data.plantId = plant.id;
       }
     }
+    if (parsed.data.wateringMessage !== undefined) {
+      const v = parsed.data.wateringMessage;
+      data.wateringMessage = v === null ? null : v.trim().slice(0, 200);
+    }
     if (Object.keys(data).length === 0) {
       // 无可改字段：直接回当前快照
       return app.prisma.device.findUniqueOrThrow({ where: { id } });
@@ -106,6 +118,7 @@ const devicesRoutes: FastifyPluginAsync = async (app) => {
         hardwareId: true,
         label: true,
         plantId: true,
+        wateringMessage: true,
         lastSeenAt: true,
         createdAt: true,
       },

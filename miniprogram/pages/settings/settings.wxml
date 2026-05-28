@@ -106,4 +106,10 @@
     <view class="settings-primary settings-primary--secondary settings-mt" bindtap="onOpenProvision">前往配网向导</view>
     <text class="settings-hint-inline">完整架构与合规清单见工程文档：docs/engineering/miniprogram-third-party-sensors.md。</text>
   </view>
+
+  <view class="ga-section-title">设备拟人化语音</view>
+  <view class="settings-card ga-card">
+    <text class="settings-hint-inline">设备检测到浇水时会朗读一句拟人化文案，可以从预设里挑或自己写一句。</text>
+    <view class="settings-primary settings-primary--secondary settings-mt" bindtap="onOpenDeviceVoice">设置浇水时的回馈文案</view>
+  </view>
 </view>

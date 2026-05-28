@@ -9,6 +9,7 @@
     "pages/plant-plan/plant-plan",
     "pages/plant-sensors/plant-sensors",
     "pages/device-provision/device-provision",
+    "pages/device-voice/device-voice",
     "pages/discover-detail/discover-detail",
     "pages/diagnose/diagnose"
   ],

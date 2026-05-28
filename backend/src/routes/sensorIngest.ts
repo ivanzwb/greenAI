@@ -51,6 +51,12 @@ const logPayloadSchema = z.object({
   entries: z.array(logEntrySchema).min(1).max(200),
 });
 
+/** 固件 POST /internal/devices/config 的请求体（HMAC 同 ingest）。 */
+const configPayloadSchema = z.object({
+  hardwareId: z.string().min(1).max(128),
+  userId: z.string().min(1).max(64),
+});
+
 const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
   // Encapsulated raw-body capture: replace the default JSON parser within
   // this plugin's scope so HMAC can be verified against the exact bytes the
@@ -200,6 +206,50 @@ const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
       "device_log_ingest"
     );
     return result;
+  });
+
+  /**
+   * 设备配置拉取：固件按 hardwareId 取回当前用户在小程序为该设备保存的配置。
+   * 与 ingest 共用 SENSOR_HMAC_SECRET 与签名格式 (x-timestamp + x-signature)。
+   * 响应：
+   *   {
+   *     wateringMessage: string | null  // null = 让固件用内置默认句
+   *   }
+   */
+  app.post("/internal/devices/config", async (req, reply) => {
+    const secret = sensorIngestSecret(reply);
+    if (!secret) return;
+
+    const rawBody =
+      (req as unknown as { rawBody?: string }).rawBody ?? "";
+
+    if (!verifyDeviceIngestHmac({
+      secret,
+      timestampHeader: stringHeader(req.headers["x-timestamp"]),
+      signatureHeader: stringHeader(req.headers["x-signature"]),
+      rawBody,
+      skewSeconds: 300,
+    })) {
+      return reply.status(401).send({ error: "invalid_signature" });
+    }
+
+    const parsed = configPayloadSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: "invalid_payload" });
+    }
+
+    const device = await app.prisma.device.findFirst({
+      where: {
+        hardwareId: parsed.data.hardwareId,
+        userId: parsed.data.userId,
+      },
+      select: { wateringMessage: true },
+    });
+    if (!device) {
+      return reply.status(404).send({ error: "device_not_found" });
+    }
+
+    return { wateringMessage: device.wateringMessage };
   });
 };
 

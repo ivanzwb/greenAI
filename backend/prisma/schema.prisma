@@ -279,6 +279,10 @@ model Device {
 
   label       String?
 
+  /// 浇水回馈语音文案（用户在小程序里从预设里挑或自定义）；NULL 表示用固件内置默认句
+
+  wateringMessage String?
+
   /// 可选：绑定到具体植物；为空表示房间/位置级测量
 
   plantId     String?

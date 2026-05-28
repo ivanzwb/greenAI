@@ -448,6 +448,7 @@ void uploadSensorData(const SensorData& d) {
     greenaiMarkBootOnce();
     greenaiFlushLogs(millis());
     greenaiMaybePostSensor(d, millis());
+    greenaiMaybeFetchConfig(millis());
 }
 
 #  else

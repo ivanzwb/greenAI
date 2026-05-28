@@ -1,0 +1,72 @@
+<view class="ga-page voice">
+  <view class="ga-hero voice-hero">
+    <text class="ga-hero__eyebrow">设备语音</text>
+    <view class="ga-hero__title">浇水时它对你说什么</view>
+    <view class="ga-hero__desc">在下方选一句拟人化文案，或自己写一句（最多 {{maxLen}} 字）。固件下次开机或拉取配置时自动生效。</view>
+  </view>
+
+  <view wx:if="{{devices.length === 0}}" class="ga-card voice-empty">
+    <text>暂无可设置的设备，请先在「设置 → 传感器绑定码」完成配网。</text>
+  </view>
+
+  <block wx:else>
+    <view class="ga-section-title">选择设备</view>
+    <view class="ga-card voice-card">
+      <picker mode="selector" range="{{deviceLabels}}" value="{{deviceIndex}}" bindchange="onDeviceChange">
+        <view class="voice-picker">{{deviceLabels[deviceIndex]}}</view>
+      </picker>
+      <view class="voice-current">
+        <text class="voice-current__label">当前文案</text>
+        <text class="voice-current__text" wx:if="{{!isDefault}}">{{currentMessage}}</text>
+        <text class="voice-current__text voice-current__text--default" wx:else>（默认）{{defaultMessage}}</text>
+      </view>
+    </view>
+
+    <view class="ga-section-title">预设文案</view>
+    <block wx:for="{{categories}}" wx:for-item="cat" wx:key="key">
+      <view class="ga-card voice-cat">
+        <view class="voice-cat__head">
+          <text class="voice-cat__name">{{cat.name}}</text>
+          <text class="voice-cat__desc">{{cat.desc}}</text>
+        </view>
+        <block wx:for="{{cat.phrases}}" wx:for-item="phrase" wx:key="*this">
+          <view
+            class="voice-phrase {{draft === phrase ? 'voice-phrase--active' : ''}}"
+            data-phrase="{{phrase}}"
+            bindtap="onPickPhrase"
+          >
+            <text>{{phrase}}</text>
+          </view>
+        </block>
+      </view>
+    </block>
+
+    <view class="ga-section-title">自定义</view>
+    <view class="ga-card voice-card">
+      <view class="voice-custom-toggle" bindtap="onToggleCustom">
+        {{ customExpanded ? '收起' : '我要自己写一句' }}
+      </view>
+      <block wx:if="{{customExpanded}}">
+        <textarea
+          class="voice-textarea"
+          maxlength="{{maxLen}}"
+          placeholder="例如：嘿嘿，是水！我准备开始疯长啦～"
+          value="{{draft}}"
+          bindinput="onDraftInput"
+        />
+        <text class="voice-count">{{draft.length}} / {{maxLen}}</text>
+      </block>
+    </view>
+
+    <view class="voice-actions">
+      <view class="voice-btn voice-btn--primary {{saving ? 'voice-btn--disabled' : ''}}" bindtap="onSave">
+        {{ saving ? '保存中…' : '保存到设备' }}
+      </view>
+      <view class="voice-btn voice-btn--ghost" bindtap="onResetDefault">恢复默认</view>
+    </view>
+
+    <view class="voice-hint">
+      固件在浇水事件触发时会朗读这句话。修改后设备会在下次启动 / 周期拉取（约每 5 分钟）时同步。
+    </view>
+  </block>
+</view>

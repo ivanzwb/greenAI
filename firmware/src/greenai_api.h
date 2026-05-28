@@ -34,3 +34,11 @@ void greenaiLog(const char* level, const char* message);
 
 /** 上电后 WiFi 就绪时调用一次，写入 boot 标记（内部仅执行一次）。 */
 void greenaiMarkBootOnce();
+
+/**
+ * 周期性拉取设备配置：POST /internal/devices/config（HMAC 同 ingest）。
+ * 当前仅返回 wateringMessage；如果服务端有变更，写入 NVS plantguard/waterMsg
+ * 并调用 ttsInvalidateConfig()，让下一次浇水播报使用新文案。
+ * 内部有节流；调用方每次 loop 调一次即可。
+ */
+void greenaiMaybeFetchConfig(unsigned long nowMillis);
