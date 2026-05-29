@@ -10,8 +10,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <esp_system.h>
-#include "soc/soc.h"
-#include "soc/rtc_cntl_reg.h"
 
 #include "config.h"
 #include "i2c_utils.h"
@@ -67,17 +65,17 @@ static void printResetReason() {
 }
 
 void setup() {
-    // 关闭欠压检测：移动杜邦线/USB 接触不良导致瞬时电压跌落时，
-    // 默认会立即复位，造成不停重起。关掉后即使电压短暂下沉也不会自动复位。
-    // 代价：若跌落非常严重，可能进入未定义行为；根治还需在 5V/3V3 上加 100~470uF 大电容或改焊接。
-    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+    // CPU 降到 160MHz：功耗约 ↓25%，瞬时电流尖峰小，
+    // 杜邦线/USB 接触不良时的电压跌落幅度变小，可显著降低 panic/复位概率。
+    // 传感器/I²C/OLED/WiFi 完全用不到 240MHz，几乎无感。
+    setCpuFrequencyMhz(160);
 
     Serial.begin(115200);
     delay(1000);
     Serial.println("\n==============================================");
     Serial.println(" PlantGuardian — Modular Firmware");
     Serial.println("==============================================");
-    Serial.println("[POWER] brownout detector disabled (loose-wire tolerant)");
+    Serial.printf("[POWER] CPU=%uMHz, brownout detector enabled\n", getCpuFrequencyMhz());
     printResetReason();
 
     pinMode(PIN_LED_BUILTIN, OUTPUT);
