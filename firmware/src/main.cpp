@@ -9,6 +9,9 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include <esp_system.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 #include "config.h"
 #include "i2c_utils.h"
@@ -36,12 +39,46 @@ static void serialPrint(const SensorData& d) {
 // ============================================================
 //  Setup
 // ============================================================
+static const char* resetReasonLabel(esp_reset_reason_t r) {
+    switch (r) {
+        case ESP_RST_UNKNOWN:   return "unknown";
+        case ESP_RST_POWERON:   return "poweron";
+        case ESP_RST_EXT:       return "ext";
+        case ESP_RST_SW:        return "sw";
+        case ESP_RST_PANIC:     return "panic";
+        case ESP_RST_INT_WDT:   return "int_wdt";
+        case ESP_RST_TASK_WDT:  return "task_wdt";
+        case ESP_RST_WDT:       return "wdt";
+        case ESP_RST_DEEPSLEEP: return "deepsleep";
+        case ESP_RST_BROWNOUT:  return "brownout";
+        case ESP_RST_SDIO:      return "sdio";
+        default:                return "?";
+    }
+}
+
+static void printResetReason() {
+    esp_reset_reason_t r = esp_reset_reason();
+    Serial.printf("[RESET] reason=%d (%s)\n", (int)r, resetReasonLabel(r));
+    if (r == ESP_RST_BROWNOUT) {
+        Serial.println("[RESET] 欠压复位 — 移动杜邦线/USB 后常见，检查供电与接触");
+    } else if (r == ESP_RST_SW) {
+        Serial.println("[RESET] 软件复位 — 若未长按 BOOT，查是否误触 GPIO0");
+    }
+}
+
 void setup() {
+    // 关闭欠压检测：移动杜邦线/USB 接触不良导致瞬时电压跌落时，
+    // 默认会立即复位，造成不停重起。关掉后即使电压短暂下沉也不会自动复位。
+    // 代价：若跌落非常严重，可能进入未定义行为；根治还需在 5V/3V3 上加 100~470uF 大电容或改焊接。
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
     Serial.begin(115200);
     delay(1000);
     Serial.println("\n==============================================");
     Serial.println(" PlantGuardian — Modular Firmware");
     Serial.println("==============================================");
+    Serial.println("[POWER] brownout detector disabled (loose-wire tolerant)");
+    printResetReason();
 
     pinMode(PIN_LED_BUILTIN, OUTPUT);
     digitalWrite(PIN_LED_BUILTIN, LOW);
@@ -80,15 +117,23 @@ void setup() {
 // ============================================================
 //  BOOT 按钮长按清凭证
 // ============================================================
+static bool bootButtonStableLow() {
+    for (int i = 0; i < 8; i++) {
+        if (digitalRead(PIN_BOOT_BUTTON) != LOW) return false;
+        delay(5);
+    }
+    return true;
+}
+
 static void checkBootButton() {
     static unsigned long pressStart = 0;
     static bool          fired      = false;
-    bool pressed = (digitalRead(PIN_BOOT_BUTTON) == LOW);
+    bool pressed = bootButtonStableLow();
 
     if (pressed) {
         if (pressStart == 0) {
             pressStart = millis();
-            Serial.println("[BOOT] button pressed, hold 5s to clear WiFi creds...");
+            Serial.println("[BOOT] stable press, hold 5s to clear WiFi creds...");
         }
         unsigned long held = millis() - pressStart;
         // 闪烁 LED 表示正在计时

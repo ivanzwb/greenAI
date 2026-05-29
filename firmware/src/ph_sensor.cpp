@@ -9,7 +9,8 @@ bool phReadOfficial(int* rawAvgOut, float* phOut) {
     int buf[10];
     for (int i = 0; i < 10; i++) {
         buf[i] = analogRead(PIN_PH);
-        delay(10);
+        delay(2);
+        yield();
     }
 
     for (int i = 0; i < 9; i++) {
