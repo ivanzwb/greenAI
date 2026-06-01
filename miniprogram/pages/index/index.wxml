@@ -1,53 +1,83 @@
 <view class="ga-page index">
-  <!-- ======== Hero ======== -->
-  <view class="index-hero">
-    <text class="ga-hero__eyebrow">{{heroDate}} · {{weekday}}</text>
-    <view class="index-hero__greeting">{{greeting}}</view>
-    <text class="index-hero__summary">{{summaryText}}</text>
+  <!-- 天气大卡（对齐设计稿顶部） -->
+  <view wx:if="{{weatherCurrent}}" class="index-weather-hero ga-card">
+    <view class="index-weather-hero__left">
+      <text class="index-weather-hero__date">{{heroDate}} · {{weekday}}</text>
+      <view class="index-weather-hero__temp-row">
+        <text class="index-weather-hero__big-temp">{{weatherCurrent.temperatureC}}°C</text>
+      </view>
+      <text class="index-weather-hero__humid">湿度 {{weatherCurrent.relativeHumidity}}%</text>
+      <text wx:if="{{weatherSummaryLine}}" class="index-weather-hero__cond">{{weatherSummaryLine}}</text>
+      <text wx:if="{{growthHint}}" class="index-weather-hero__hint">{{growthHint}}</text>
+    </view>
+    <view class="index-weather-hero__sun">☀️</view>
+  </view>
+  <view wx:else class="index-weather-hero ga-card index-weather-hero--empty" bindtap="goSettings">
+    <view class="index-weather-hero__left">
+      <text class="index-weather-hero__date">{{heroDate}} · {{weekday}}</text>
+      <text class="index-weather-hero__placeholder">保存位置后可在「我」中开启定位，首页将显示本地天气</text>
+    </view>
+    <view class="index-weather-hero__sun index-weather-hero__sun--muted">🌍</view>
   </view>
 
-  <!-- ======== 养护 section ======== -->
-  <text class="index-section-title">🌱 养护</text>
-
-  <!-- ======== Stats row ======== -->
-  <view class="index-stats">
-    <view class="index-stat ga-card" bindtap="goPlants">
-      <text class="index-stat__num">{{plantCount}}</text>
-      <text class="index-stat__label">植物</text>
+  <view class="index-section-head">
+    <text class="index-section-head__title">待办事项</text>
+  </view>
+  <view class="index-todos-row ga-card">
+    <view class="index-donut-wrap" bindtap="goPlants">
+      <view class="index-donut index-donut--water">
+        <text class="index-donut__num">{{waterTodoCount}}</text>
+      </view>
+      <text class="index-donut__cap">待浇水</text>
     </view>
-    <view class="index-stat ga-card">
-      <text class="index-stat__num index-stat__num--accent">{{pendingCount}}</text>
-      <text class="index-stat__label">待办</text>
-    </view>
-    <view class="index-stat ga-card" bindtap="goDiagnose">
-      <text class="index-stat__num index-stat__num--warn">{{attentionCount}}</text>
-      <text class="index-stat__label">需关注</text>
+    <view class="index-donut-wrap" bindtap="goPlants">
+      <view class="index-donut index-donut--fert">
+        <text class="index-donut__num">{{fertilizeTodoCount}}</text>
+      </view>
+      <text class="index-donut__cap">待施肥</text>
     </view>
   </view>
 
-  <!-- ======== Weather ======== -->
-  <view wx:if="{{weatherCurrent}}" class="index-weather ga-card">
-    <view class="index-weather__head">
-      <text class="index-weather__icon">🌤</text>
-      <text class="index-weather__temp">{{weatherCurrent.temperatureC}}°C</text>
-      <text class="index-weather__sep">·</text>
-      <text class="index-weather__humid">湿度 {{weatherCurrent.relativeHumidity}}%</text>
-    </view>
-    <view wx:if="{{forecastDays && forecastDays.length}}" class="index-forecast">
-      <view wx:for="{{forecastDays}}" wx:key="date" class="index-forecast__day">
-        <text class="index-forecast__dow">{{item.dow}}</text>
-        <text class="index-forecast__icon">{{item.wmoIcon}}</text>
-        <text class="index-forecast__t">{{item.tempMinC}}° / {{item.tempMaxC}}°</text>
+  <view class="index-section-head">
+    <text class="index-section-head__title">我的植物</text>
+    <text class="index-section-head__link" bindtap="goPlants">全部 ›</text>
+  </view>
+  <scroll-view wx:if="{{plantStrip.length}}" scroll-x class="index-plants-scroll" show-scrollbar="{{false}}">
+    <view class="index-plants-scroll__inner">
+      <view
+        wx:for="{{plantStrip}}"
+        wx:key="id"
+        class="index-plant-chip"
+        data-id="{{item.id}}"
+        bindtap="goPlantEdit"
+      >
+        <view class="index-plant-chip__avatar">{{item.avatarLetter}}</view>
+        <text class="index-plant-chip__name">{{item.nickname}}</text>
       </view>
     </view>
-  </view>
-  <view wx:else class="index-weather ga-card index-weather--empty" bindtap="goPlants">
-    <text class="index-weather__placeholder">🌍 保存位置后可查看本地天气</text>
+  </scroll-view>
+  <view wx:else class="index-plants-empty ga-card" bindtap="goAdd">
+    <text>还没有植物，点此处添加</text>
   </view>
 
-  <!-- ======== 待办区域 ======== -->
+  <text class="index-section-head__title index-section-head__title--solo">常用工具</text>
+  <view class="index-tools ga-card">
+    <view class="index-tool" bindtap="onIdentify">
+      <text class="index-tool__icon">🌼</text>
+      <text class="index-tool__label">植物识别</text>
+    </view>
+    <view class="index-tool" bindtap="onDiagnosePhoto">
+      <text class="index-tool__icon">🪴</text>
+      <text class="index-tool__label">土壤识别</text>
+    </view>
+    <view class="index-tool" bindtap="onDiagnoseSymptom">
+      <text class="index-tool__icon">🐛</text>
+      <text class="index-tool__label">病虫害诊断</text>
+    </view>
+  </view>
+
   <block wx:if="{{tasks.length > 0}}">
-    <text class="index-section-title">📋 待办</text>
+    <text class="index-section-head__title index-section-head__title--solo">今日任务</text>
     <block wx:for="{{tasks}}" wx:key="id">
       <view class="index-task ga-card">
         <view class="index-task__head">
@@ -62,28 +92,4 @@
       </view>
     </block>
   </block>
-
-  <!-- ======== Quick actions ======== -->
-  <view class="index-actions ga-card">
-    <view class="index-actions__row">
-      <view class="index-act index-act--identify" bindtap="onIdentify">
-        <text class="index-act__icon">🌼</text>
-        <text class="index-act__label">拍照识花</text>
-      </view>
-      <view class="index-act index-act--soil" bindtap="onDiagnosePhoto">
-        <text class="index-act__icon">🪴</text>
-        <text class="index-act__label">土壤诊断</text>
-      </view>
-      <view class="index-act index-act--symptom" bindtap="onDiagnoseSymptom">
-        <text class="index-act__icon">📋</text>
-        <text class="index-act__label">症状诊断</text>
-      </view>
-    </view>
-    <view class="index-actions__row">
-      <view class="index-act index-act--full" bindtap="goAdd">
-        <text class="index-act__icon">＋</text>
-        <text class="index-act__label">添加植物</text>
-      </view>
-    </view>
-  </view>
 </view>

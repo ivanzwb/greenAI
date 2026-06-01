@@ -26,38 +26,30 @@ function wmoIcon(code) {
 
 Page({
   data: {
-    // hero
     heroDate: "",
     weekday: "",
-    greeting: "",
-    summaryText: "加载中…",
 
-    // stats
     plantCount: 0,
     pendingCount: 0,
     attentionCount: 0,
 
-    // weather
     weatherCurrent: null,
     forecastDays: [],
+    weatherSummaryLine: "",
+    growthHint: "",
 
-    // tasks
+    waterTodoCount: 0,
+    fertilizeTodoCount: 0,
+    plantStrip: [],
+
     tasks: [],
   },
 
   async onShow() {
     const now = new Date();
-    const h = now.getHours();
-    let greeting;
-    if (h < 5) greeting = "夜深了";
-    else if (h < 12) greeting = "早上好";
-    else if (h < 18) greeting = "下午好";
-    else greeting = "晚上好";
-
     this.setData({
       heroDate: `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
       weekday: WEEKDAYS[now.getDay()],
-      greeting,
     });
 
     await this.loadDashboard();
@@ -83,14 +75,27 @@ Page({
     // "attention" = plants with overdue tasks (rough heuristic)
     const attentionCount = pendingCount > 0 ? Math.min(pendingCount, plantCount) : 0;
 
-    let summaryText;
-    if (pendingCount > 0) {
-      summaryText = `今天有 ${pendingCount} 项养护待办`;
-    } else if (plantCount === 0) {
-      summaryText = "还没有植物，去添加一盆吧 🌱";
-    } else {
-      summaryText = "";
+    const waterTodoCount = tasks.filter((t) => t.typeClass === "water").length;
+    const fertilizeTodoCount = tasks.filter((t) => t.typeClass === "fertilize").length;
+
+    let weatherSummaryLine = "";
+    let growthHint = "";
+    if (forecastDays.length > 0) {
+      const d0 = forecastDays[0];
+      weatherSummaryLine = `${d0.wmoIcon} 今日 ${d0.tempMaxC}° / ${d0.tempMinC}°`;
     }
+    if (weatherCurrent && forecastDays.length > 0) {
+      growthHint = "当前天气较适宜室内观叶植物生长。";
+    }
+
+    const plantStrip = (Array.isArray(plants) ? plants : []).slice(0, 12).map((p) => ({
+      id: p.id,
+      nickname: p.nickname || "未命名",
+      avatarLetter:
+        p.nickname && String(p.nickname).trim()
+          ? String(p.nickname).trim().charAt(0)
+          : "植",
+    }));
 
     this.setData({
       tasks,
@@ -99,11 +104,15 @@ Page({
       attentionCount,
       weatherCurrent,
       forecastDays,
-      summaryText,
+      weatherSummaryLine,
+      growthHint,
+      waterTodoCount,
+      fertilizeTodoCount,
+      plantStrip,
     });
 
     wx.setNavigationBarTitle({
-      title: pendingCount > 0 ? `首页（${pendingCount}）` : "首页",
+      title: pendingCount > 0 ? `GreenAI Bot（${pendingCount}）` : "GreenAI Bot",
     });
     setTodayTabBadgeFromCount(pendingCount);
   },
@@ -219,8 +228,18 @@ Page({
     wx.switchTab({ url: "/pages/plants/plants" });
   },
 
+  goSettings() {
+    wx.switchTab({ url: "/pages/settings/settings" });
+  },
+
+  goPlantEdit(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({ url: `/pages/plant-edit/plant-edit?id=${id}` });
+  },
+
   goIdentify() {
-    wx.switchTab({ url: "/pages/identify/identify" });
+    wx.navigateTo({ url: "/pages/identify/identify" });
   },
 
   /** 拍照识花 */

@@ -1,3 +1,67 @@
+.plants-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: var(--ga-space);
+}
+
+.plants-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: var(--ga-bg-elevated);
+  border: 1rpx solid var(--ga-border);
+}
+
+.plants-search__icon {
+  font-size: 28rpx;
+  opacity: 0.7;
+}
+
+.plants-search__input {
+  flex: 1;
+  font-size: 28rpx;
+  height: 44rpx;
+  min-height: 44rpx;
+}
+
+.plants-toolbar__add {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: 300;
+  color: #fff;
+  background: var(--ga-brand);
+}
+
+.plants-loc-hint {
+  padding: 24rpx 28rpx;
+  margin-bottom: var(--ga-space);
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.plants-loc-hint__text {
+  font-size: 26rpx;
+  color: var(--ga-text-secondary);
+  line-height: 1.45;
+}
+
+.plants-loc-hint__go {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--ga-brand);
+}
+
 .plants-hero {
   margin-bottom: var(--ga-space-lg);
   position: relative;

@@ -1,161 +1,255 @@
-/* ── Hero ── */
+/* ── 天气大卡 ── */
 
-.index-hero {
+.index-weather-hero {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
   margin-bottom: var(--ga-space-lg);
+  overflow: hidden;
 }
 
-.index-hero__greeting {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: var(--ga-text);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+.index-weather-hero--empty .index-weather-hero__placeholder {
+  color: var(--ga-text-secondary);
+  font-size: 26rpx;
+  line-height: 1.5;
+  margin-top: 12rpx;
+}
+
+.index-weather-hero__left {
+  flex: 1;
+  min-width: 0;
+}
+
+.index-weather-hero__date {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--ga-text-muted);
   margin-bottom: 8rpx;
 }
 
-.index-hero__summary {
+.index-weather-hero__temp-row {
+  margin-bottom: 8rpx;
+}
+
+.index-weather-hero__big-temp {
+  font-size: 56rpx;
+  font-weight: 800;
+  color: var(--ga-text);
+  letter-spacing: -0.03em;
+}
+
+.index-weather-hero__humid {
+  display: block;
   font-size: 26rpx;
   color: var(--ga-text-secondary);
-  line-height: 1.5;
+  margin-bottom: 8rpx;
 }
 
-/* ── Stats row ── */
-
-.index-stats {
-  display: flex;
-  gap: var(--ga-space);
-  margin-bottom: var(--ga-space-lg);
-}
-
-.index-stat {
-  flex: 1;
-  padding: 20rpx 12rpx 16rpx;
-  text-align: center;
-  cursor: pointer;
-}
-
-.index-stat__num {
+.index-weather-hero__cond {
   display: block;
-  font-size: 44rpx;
-  font-weight: 800;
+  font-size: 26rpx;
+  color: var(--ga-text);
+  margin-bottom: 8rpx;
+}
+
+.index-weather-hero__hint {
+  display: block;
+  font-size: 24rpx;
   color: var(--ga-brand);
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin-bottom: 6rpx;
-}
-
-.index-stat__num--accent {
-  color: var(--ga-water);
-}
-
-.index-stat__num--warn {
-  color: var(--ga-accent);
-}
-
-.index-stat__label {
-  font-size: 22rpx;
-  color: var(--ga-text-muted);
   font-weight: 600;
-  letter-spacing: 0.06em;
 }
 
-/* ── Weather ── */
-
-.index-weather {
-  padding: 24rpx 28rpx;
-  margin-bottom: var(--ga-space-lg);
+.index-weather-hero__sun {
+  font-size: 120rpx;
+  line-height: 1;
+  align-self: center;
+  margin-left: 16rpx;
+  filter: drop-shadow(0 0 24rpx rgba(255, 193, 7, 0.45));
 }
 
-.index-weather__head {
+.index-weather-hero__sun--muted {
+  filter: none;
+  opacity: 0.85;
+}
+
+/* ── 区块标题 ── */
+
+.index-section-head {
   display: flex;
-  align-items: baseline;
-  gap: 10rpx;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 16rpx;
+  margin-top: 8rpx;
 }
 
-.index-weather__icon {
-  font-size: 36rpx;
-  margin-right: 4rpx;
-}
-
-.index-weather__temp {
-  font-size: 36rpx;
+.index-section-head__title {
+  font-size: 32rpx;
   font-weight: 700;
   color: var(--ga-text);
 }
 
-.index-weather__sep {
-  color: var(--ga-border-strong);
-  font-size: 24rpx;
+.index-section-head__title--solo {
+  display: block;
+  margin: var(--ga-space-lg) 0 16rpx;
 }
 
-.index-weather__humid {
+.index-section-head__link {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--ga-brand);
+}
+
+/* ── 待办圆环 ── */
+
+.index-todos-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 32rpx 24rpx 28rpx;
+  margin-bottom: var(--ga-space-lg);
+}
+
+.index-donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.index-donut {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 12rpx solid #e3f2fd;
+  background: #fafafa;
+}
+
+.index-donut--water {
+  border-color: #90caf9;
+  background: #e3f2fd;
+}
+
+.index-donut--fert {
+  border-color: #ffcc80;
+  background: #fff3e0;
+}
+
+.index-donut__num {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: var(--ga-text);
+}
+
+.index-donut__cap {
+  font-size: 24rpx;
+  color: var(--ga-text-secondary);
+  font-weight: 600;
+}
+
+/* ── 植物横滑 ── */
+
+.index-plants-scroll {
+  width: 100%;
+  white-space: nowrap;
+  margin-bottom: var(--ga-space-lg);
+}
+
+.index-plants-scroll__inner {
+  display: inline-flex;
+  gap: 20rpx;
+  padding: 4rpx 4rpx 12rpx;
+}
+
+.index-plant-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 132rpx;
+  vertical-align: top;
+}
+
+.index-plant-chip__avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 24rpx;
+  background: var(--ga-brand-soft);
+  color: var(--ga-brand);
+  font-size: 40rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10rpx;
+  border: 1rpx solid var(--ga-border);
+}
+
+.index-plant-chip__name {
+  font-size: 22rpx;
+  color: var(--ga-text-secondary);
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.index-plants-empty {
+  padding: 28rpx;
+  text-align: center;
   font-size: 26rpx;
   color: var(--ga-text-secondary);
+  margin-bottom: var(--ga-space-lg);
 }
 
-.index-weather--empty {
-  cursor: pointer;
-}
+/* ── 常用工具（三宫格） ── */
 
-.index-weather__placeholder {
-  display: block;
-  font-size: 26rpx;
-  color: var(--ga-text-muted);
-  text-align: center;
-  padding: 12rpx 0;
-}
-
-/* ── Forecast row ── */
-
-.index-forecast {
+.index-tools {
   display: flex;
-  gap: 12rpx;
-  border-top: 1rpx solid var(--ga-border);
-  padding-top: 16rpx;
+  gap: 16rpx;
+  padding: 20rpx 16rpx 24rpx;
+  margin-bottom: var(--ga-space-lg);
 }
 
-.index-forecast__day {
+.index-tool {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6rpx;
+  justify-content: center;
+  padding: 24rpx 8rpx;
+  border-radius: var(--ga-radius-md);
+  background: var(--ga-bg-elevated);
+  border: 1rpx solid var(--ga-border);
 }
 
-.index-forecast__dow {
+.index-tool:active {
+  opacity: 0.92;
+}
+
+.index-tool__icon {
+  font-size: 44rpx;
+  margin-bottom: 10rpx;
+}
+
+.index-tool__label {
   font-size: 22rpx;
   font-weight: 600;
-  color: var(--ga-text-muted);
-}
-
-.index-forecast__icon {
-  font-size: 32rpx;
-}
-
-.index-forecast__t {
-  font-size: 22rpx;
   color: var(--ga-text-secondary);
-  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
-/* ── Section title ── */
-
-.index-section-title {
-  display: block;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: var(--ga-text);
-  margin: var(--ga-space-lg) 0 var(--ga-space);
-  letter-spacing: 0.02em;
-}
+/* ── Hero（旧版已弃用，保留类名防引用断裂） ── */
 
 /* ── Tasks ── */
 
 .index-task {
   padding: 28rpx 28rpx 24rpx;
   margin-bottom: var(--ga-space);
-  border-left: 6rpx solid var(--ga-brand-mid);
+  border-left: 6rpx solid var(--ga-brand);
 }
 
 .index-task__head {
@@ -226,7 +320,7 @@
 
 .index-pill--primary {
   background: var(--ga-brand);
-  color: #f6fffa;
+  color: #ffffff;
 }
 
 .index-pill--quiet {

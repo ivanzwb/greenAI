@@ -24,7 +24,7 @@ Page({
     ],
   },
   onGoSettings() {
-    wx.navigateTo({ url: "/pages/settings/settings" });
+    wx.switchTab({ url: "/pages/settings/settings" });
   },
   onContact() {
     wx.showModal({
@@ -34,7 +34,7 @@ Page({
       confirmText: "去设置",
       cancelText: "知道了",
       success: (r) => {
-        if (r.confirm) wx.navigateTo({ url: "/pages/settings/settings" });
+        if (r.confirm) wx.switchTab({ url: "/pages/settings/settings" });
       },
     });
   },

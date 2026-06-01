@@ -1,5 +1,40 @@
-.settings-hero {
+.settings-profile {
+  display: flex;
+  align-items: center;
+  gap: 28rpx;
+  padding: 36rpx 28rpx;
+  margin-bottom: var(--ga-space-lg);
+}
+
+.settings-profile__avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: var(--ga-brand-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52rpx;
+  border: 2rpx solid var(--ga-border);
+}
+
+.settings-profile__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-profile__name {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--ga-text);
   margin-bottom: 8rpx;
+}
+
+.settings-profile__sub {
+  display: block;
+  font-size: 26rpx;
+  color: var(--ga-text-muted);
 }
 
 .settings-card {

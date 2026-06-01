@@ -1,6 +1,6 @@
-# 植物管家 (greenAI)
+# GreenAI Bot (greenAI)
 
-微信小程序「植物管家」—— 一款面向家庭的植物养护管理工具。后端 Fastify + Prisma + PostgreSQL，前端微信小程序原生开发。
+微信小程序 **GreenAI Bot**（植物养护）—— 面向家庭的植物养护管理工具。后端 Fastify + Prisma + PostgreSQL，前端微信小程序原生开发。跨端 **uni-app** 工程见 [`uniapp/README.md`](uniapp/README.md)；总体说明见 [docs/engineering/cross-platform-clients.md](docs/engineering/cross-platform-clients.md)。
 
 ## 功能一览
 
@@ -8,10 +8,12 @@
 
 | 页面 | 功能 |
 |---|---|
-| **首页** | 今日待办养护任务列表（浇水/施肥）、完成/跳过操作 |
-| **识别** | 拍照识花、AI 拍照诊断、症状诊断入口 |
+| **首页** | 天气大卡、待办浇水/施肥统计、植物横滑、常用工具；今日任务列表与完成/跳过 |
+| **养护** | 搜索植物列表、计划/编辑/删除；定位提示跳转「我」 |
 | **知识** | 养护知识搜索与文章列表（后端驱动） |
-| **我的** | 植物列表、添加/编辑/删除植物；时区/定位/天气/环境偏好（inline 设置） || **植物 → 养护计划** | 详情、重算、「传感器与图表 →」入口 |
+| **我** | 账户摘要、时区/室内环境/定位与天气、传感器绑定码、第三方环境监测、设备语音文案 |
+| **常用工具**（非 Tab） | 拍照识花、土壤诊断、症状诊断（`pages/identify/identify`） |
+| **植物 → 养护计划** | 详情、重算、「传感器与图表 →」入口 |
 | **传感器与图表** | pH 评估 + 温/湿/pH/光照 4 张 sparkline；已绑定设备列表与绑定/解绑 |
 | **设备配网向导** | 4 步配网说明占位页，BLE 仅仔一次性写入 SSID，数据通路走 HTTPS |
 ### 后端 API
@@ -227,6 +229,9 @@ greenAI/
 │   ├── pages/                # 页面（首页、识别、知识、我的、设置等）
 │   ├── utils/                # 工具（API 请求封装）
 │   └── data/                 # 静态知识数据
+├── uniapp/                   # uni-app（Vue3+Vite：H5 / App / 各端小程序）
+│   ├── src/pages/            # 首页、养护、知识、我（Tab）
+│   └── src/utils/            # API_BASE、request 封装
 ├── deploy/                   # 部署配置
 │   ├── docker-compose.prod.yml
 │   ├── nginx-greenai.conf    # nginx 反代配置模板（由 deploy.sh 生成部署）
@@ -238,7 +243,8 @@ greenAI/
 │       ├── restart.sh        # 重启 API
 │       └── backup.sh         # PostgreSQL 备份
 ├── scripts/
-│   └── ship.mjs             # 一键提交+推送脚本
+│   ├── ship.mjs              # 一键提交+推送脚本
+│   └── write-uniapp-tab-placeholders.mjs  # 生成 uni-app Tab 占位图标
 └── .github/workflows/
     └── ci.yml                # GitHub Actions CI
 ```

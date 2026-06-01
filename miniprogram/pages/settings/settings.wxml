@@ -1,8 +1,15 @@
 <view class="ga-page settings">
-  <view class="ga-hero settings-hero">
-    <text class="ga-hero__eyebrow">偏好</text>
-    <view class="ga-hero__title">设置</view>
-    <view class="ga-hero__desc">时区决定「今日」边界；位置与天气用于微调浇水节奏。</view>
+  <view class="settings-profile ga-card">
+    <view class="settings-profile__avatar">🌿</view>
+    <view class="settings-profile__meta">
+      <text class="settings-profile__name">GreenAI 花友</text>
+      <text class="settings-profile__sub">账户 {{userIdPreview}}</text>
+    </view>
+  </view>
+
+  <text class="ga-section-title">偏好与数据</text>
+  <view class="settings-card ga-card">
+    <text class="settings-hint-inline">时区、室内环境与定位天气影响「今日任务」与浇水节奏；传感器与设备相关入口也在下方。</text>
   </view>
 
   <view class="ga-section-title">时区</view>
@@ -20,7 +27,7 @@
   <view class="settings-card ga-card">
     <view class="settings-field settings-field--row">
       <text class="settings-label settings-label--inline">长期开空调（偏干）</text>
-      <switch color="#2a4d3a" checked="{{airConditioning}}" bindchange="onAcChange" />
+      <switch color="#43A047" checked="{{airConditioning}}" bindchange="onAcChange" />
     </view>
     <view class="settings-field">
       <text class="settings-label">窗台 / 主采光朝向</text>

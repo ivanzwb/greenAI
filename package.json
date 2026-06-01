@@ -6,6 +6,7 @@
     "verify:openspec-docs": "node --test scripts/parity-docs-anchor.test.mjs",
     "verify:admin": "npm run build --prefix admin",
     "verify:backend": "npm run build --prefix backend && npm run test --prefix backend",
+    "dev:uniapp:h5": "npm run dev:h5 --prefix uniapp",
     "ship": "node scripts/ship.mjs"
   }
 }

@@ -1,19 +1,30 @@
 <view class="ga-page plants">
-  <view class="ga-hero plants-hero">
-    <view class="ga-hero__title">我的植物</view>
-    <view class="ga-hero__desc">管理品种、环境与养护节奏；编辑后将自动重算计划。</view>
+  <view class="plants-toolbar ga-card">
+    <view class="plants-search">
+      <text class="plants-search__icon">🔍</text>
+      <input
+        class="plants-search__input"
+        type="text"
+        placeholder="搜索我的植物"
+        confirm-type="search"
+        value="{{searchQuery}}"
+        bindinput="onSearchInput"
+      />
+    </view>
+    <view class="plants-toolbar__add" bindtap="goAdd">＋</view>
   </view>
 
-  <view class="plants-actions ga-card">
-    <view class="plants-actions__primary" bindtap="goAdd">添加植物</view>
+  <view wx:if="{{needLocationTip}}" class="plants-loc-hint ga-card" bindtap="goSettings">
+    <text class="plants-loc-hint__text">开启定位后，首页与计划会结合当地天气微调浇水节奏</text>
+    <text class="plants-loc-hint__go">去「我」设置 ›</text>
   </view>
 
-  <view wx:if="{{plants.length === 0}}" class="plants-empty ga-card">
-    <text class="plants-empty__title">还没有植物</text>
-    <text class="plants-empty__hint">从「添加植物」开始建立你的室内花园档案。</text>
+  <view wx:if="{{displayPlants.length === 0}}" class="plants-empty ga-card">
+    <text class="plants-empty__title">{{searchQuery ? '没有匹配的植物' : '还没有植物'}}</text>
+    <text class="plants-empty__hint">{{searchQuery ? '换个关键词试试' : '点击右上角 ＋ 添加'}}</text>
   </view>
 
-  <block wx:for="{{plants}}" wx:key="id">
+  <block wx:for="{{displayPlants}}" wx:key="id">
     <view class="plants-card ga-card">
       <view class="plants-card__main">
         <view class="plants-avatar">{{item.avatarLetter}}</view>
@@ -29,53 +40,4 @@
       </view>
     </view>
   </block>
-
-  <view class="ga-section-title">位置与天气</view>
-  <view wx:if="{{needLocationTip}}" class="settings-callout ga-card">
-    <text class="settings-callout__title">环境感知</text>
-    <text class="settings-callout__body">保存当前位置后，会结合当地温湿度与短期预报微调浇水间隔。请在下方使用「使用当前定位」并允许授权。</text>
-  </view>
-
-  <view class="settings-card ga-card">
-    <view wx:if="{{currentLive}}" class="settings-live">
-      <view class="settings-live-icon settings-live-icon--{{liveWeatherKind}}"></view>
-      <view class="settings-live-texts">
-        <text class="settings-live-temp">{{currentLive.tempC}}°C</text>
-        <text class="settings-live-sub">湿度 {{currentLive.rh}}%</text>
-      </view>
-    </view>
-
-    <view wx:if="{{forecastDays.length}}" class="settings-chart">
-      <text class="settings-chart-title">未来 3 日 · 气温示意</text>
-      <view class="settings-chart-row">
-        <block wx:for="{{forecastDays}}" wx:key="date">
-          <view class="settings-chart-day">
-            <view class="settings-live-icon settings-live-icon--sm settings-live-icon--{{item.weatherKind}}"></view>
-            <text class="settings-chart-dm">{{item.dateShort}}</text>
-            <view class="settings-chart-track">
-              <view class="settings-chart-fill" style="height: {{item.barFillRpx}}rpx;"></view>
-            </view>
-            <text class="settings-chart-hilo">{{item.lo}}° / {{item.hi}}°</text>
-          </view>
-        </block>
-      </view>
-      <view wx:if="{{forecastHint}}" class="settings-chart-hint">{{forecastHint}}</view>
-    </view>
-
-    <!-- 时区（与定位绑定） -->
-    <view class="settings-field settings-field--tz">
-      <text class="settings-label">时区</text>
-      <picker mode="selector" range="{{labels}}" value="{{tzIndex}}" bindchange="onTzChange">
-        <view class="settings-picker">{{labels[tzIndex]}}</view>
-      </picker>
-    </view>
-    <!-- 定位按钮 -->
-    <view class="settings-field settings-field--loc">
-      <text wx:if="{{locationReadable}}" class="settings-location-label">{{locationReadable}}</text>
-      <view class="settings-btns">
-        <view class="settings-btn settings-btn--primary" bindtap="onPickLocation">使用当前定位</view>
-        <view class="settings-btn settings-btn--ghost" bindtap="onClearLocation">清除位置</view>
-      </view>
-    </view>
-  </view>
 </view>
