@@ -134,9 +134,171 @@ void displayBootAnimation() {
     delay(300);
 }
 
+// ============================================================
+//  浇水回馈：俏皮圆脸 + 单眼 wink + 媚眼（左眼看右）
+// ============================================================
+static void drawWateringWinkFrame(int frame) {
+    const int cx = 64, cy = 34;
+
+    u8g2.clearBuffer();
+    u8g2.setDrawColor(1);
+
+    // 圆脸轮廓
+    u8g2.drawCircle(cx, cy, 22);
+    u8g2.drawCircle(cx, cy, 21);
+
+    // 害羞腮红
+    u8g2.drawDisc(40, 40, 3);
+    u8g2.drawDisc(88, 40, 3);
+
+    const int eyeY   = 28;
+    const int leftX  = 48;
+    const int rightX = 80;
+
+    // 左眼：大圆眼 + 瞳孔（frame 2~4 瞳孔略向右「抛媚眼」）
+    int pupilShift = 0;
+    if (frame >= 2 && frame <= 4) pupilShift = 4;
+    u8g2.drawFilledEllipse(leftX, eyeY, 8, 10);
+    u8g2.setDrawColor(0);
+    u8g2.drawDisc(leftX + 1 + pupilShift, eyeY + 1, 4);
+    u8g2.setDrawColor(1);
+    u8g2.drawDisc(leftX + 3 + pupilShift, eyeY - 1, 2);
+
+    // 右眉略挑（俏皮）
+    if (frame >= 1) {
+        u8g2.drawHLine(rightX - 10, eyeY - 12, 10);
+        u8g2.drawHLine(rightX - 9, eyeY - 13, 8);
+    }
+
+    // 右眼：wink 序列
+    u8g2.setDrawColor(1);
+    if (frame <= 0) {
+        u8g2.drawFilledEllipse(rightX, eyeY, 8, 10);
+        u8g2.setDrawColor(0);
+        u8g2.drawDisc(rightX + 1, eyeY + 1, 4);
+        u8g2.setDrawColor(1);
+        u8g2.drawDisc(rightX + 3, eyeY - 1, 2);
+    } else if (frame == 1) {
+        u8g2.drawFilledEllipse(rightX, eyeY, 8, 5);
+        u8g2.setDrawColor(0);
+        u8g2.drawDisc(rightX + 1, eyeY, 3);
+        u8g2.setDrawColor(1);
+    } else if (frame <= 4) {
+        // 眯眼 wink
+        u8g2.drawHLine(rightX - 10, eyeY, 20);
+        u8g2.drawHLine(rightX - 10, eyeY + 1, 20);
+        u8g2.drawHLine(rightX - 9, eyeY - 1, 18);
+    } else {
+        u8g2.drawFilledEllipse(rightX, eyeY, 8, 9);
+        u8g2.setDrawColor(0);
+        u8g2.drawDisc(rightX + 1, eyeY + 1, 4);
+        u8g2.setDrawColor(1);
+        u8g2.drawDisc(rightX + 3, eyeY - 1, 2);
+    }
+
+    // 小爱心（媚眼旁点缀）
+    if (frame >= 2 && frame <= 4) {
+        u8g2.drawDisc(98, 22, 2);
+        u8g2.drawDisc(101, 22, 2);
+        u8g2.drawTriangle(96, 24, 103, 24, 99, 28);
+    }
+
+    // 嘴巴：微笑略加大帧末
+    int smileDrop = (frame >= 3) ? 1 : 0;
+    u8g2.drawLine(48, 45 + smileDrop, 56, 51 + smileDrop);
+    u8g2.drawLine(56, 51 + smileDrop, 72, 51 + smileDrop);
+    u8g2.drawLine(72, 51 + smileDrop, 80, 45 + smileDrop);
+    if (frame >= 3) {
+        u8g2.drawPixel(64, 52 + smileDrop);
+        u8g2.drawPixel(63, 53 + smileDrop);
+        u8g2.drawPixel(65, 53 + smileDrop);
+    }
+
+    u8g2.setFont(u8g2_font_wqy12_t_gb2312a);
+    u8g2.drawUTF8(34, 62, "喝饱啦~");
+}
+
+void displayWateringWink() {
+    u8g2.setPowerSave(0);
+    static const int kFrames = 6;
+    for (int f = 0; f < kFrames; f++) {
+        drawWateringWinkFrame(f);
+        u8g2.sendBuffer();
+        delay(95);
+    }
+    delay(180);
+}
+
+// ============================================================
+//  稳定后环境播报：对称笑脸 + 略张开的嘴（像在说话）
+// ============================================================
+static unsigned long s_speakingSmileUntil = 0;
+
+static void drawSpeakingSmileFace() {
+    const int cx = 64, cy = 34;
+    const int eyeY = 28, leftX = 48, rightX = 80;
+
+    u8g2.clearBuffer();
+    u8g2.setDrawColor(1);
+
+    u8g2.drawCircle(cx, cy, 22);
+    u8g2.drawCircle(cx, cy, 21);
+
+    // 双眼：正常、对称
+    u8g2.drawFilledEllipse(leftX, eyeY, 7, 9);
+    u8g2.drawFilledEllipse(rightX, eyeY, 7, 9);
+    u8g2.setDrawColor(0);
+    u8g2.drawDisc(leftX + 1, eyeY + 1, 4);
+    u8g2.drawDisc(rightX + 1, eyeY + 1, 4);
+    u8g2.setDrawColor(1);
+    u8g2.drawDisc(leftX + 2, eyeY - 2, 2);
+    u8g2.drawDisc(rightX + 2, eyeY - 2, 2);
+
+    // 微笑弧线（略宽）
+    u8g2.drawLine(46, 44, 54, 50);
+    u8g2.drawLine(54, 50, 74, 50);
+    u8g2.drawLine(74, 50, 82, 44);
+    u8g2.drawLine(48, 45, 56, 51);
+    u8g2.drawLine(56, 51, 72, 51);
+    u8g2.drawLine(72, 51, 80, 45);
+
+    // 嘴部略张（像在念白）
+    u8g2.setDrawColor(0);
+    u8g2.drawFilledEllipse(64, 51, 5, 3);
+    u8g2.setDrawColor(1);
+    u8g2.drawPixel(60, 49);
+    u8g2.drawPixel(68, 49);
+
+    u8g2.setFont(u8g2_font_wqy12_t_gb2312a);
+    u8g2.drawUTF8(38, 62, "播报中…");
+}
+
+void displayHoldSpeakingSmile(unsigned long durationMs, bool wifiConnected) {
+    if (durationMs == 0) return;
+    s_speakingSmileUntil = millis() + durationMs;
+    u8g2.setPowerSave(0);
+    u8g2.clearBuffer();
+    drawSpeakingSmileFace();
+    drawWifiIcon(wifiConnected);
+    u8g2.sendBuffer();
+}
+
 void displayUpdate(const SensorData& d) {
     char buf[48];
     u8g2.setPowerSave(0);
+
+    if (s_speakingSmileUntil != 0) {
+        const unsigned long now = millis();
+        if ((long)(now - s_speakingSmileUntil) < 0) {
+            u8g2.clearBuffer();
+            drawSpeakingSmileFace();
+            drawWifiIcon(d.wifiConnected);
+            u8g2.sendBuffer();
+            return;
+        }
+        s_speakingSmileUntil = 0;
+    }
+
     u8g2.setFont(u8g2_font_wqy12_t_gb2312a);   // 中文 + ASCII 同字体
     u8g2.clearBuffer();
 
@@ -178,5 +340,7 @@ void displayUpdate(const SensorData& d) {
 void displayInit() {}
 void displayBootAnimation() {}
 void displayUpdate(const SensorData&) {}
+void displayWateringWink() {}
+void displayHoldSpeakingSmile(unsigned long, bool) {}
 
 #endif

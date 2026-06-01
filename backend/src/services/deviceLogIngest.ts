@@ -10,6 +10,7 @@ export type DeviceLogEntryInput = {
 export type DeviceLogIngestPayload = {
   hardwareId: string;
   userId: string;
+  /** 传 `undefined` 时不因日志 ingest 改写 `Device.plantId`。 */
   plantId?: string | null;
   entries: DeviceLogEntryInput[];
 };
@@ -19,9 +20,10 @@ export type DeviceLogIngestResult = {
   inserted: number;
 };
 
-/**
- * Upsert 设备后批量写入运行日志，并按本批 `occurredAt`（或当前时间）刷新 `lastSeenAt`。
- */
+  /**
+   * Upsert 设备后批量写入运行日志，并按本批 `occurredAt`（或当前时间）刷新 `lastSeenAt`。
+   * `plantId` 仅用于 create 分支；路由层传 `undefined` 时不改写已绑定植物。
+   */
 export async function ingestDeviceLogs(
   prisma: PrismaClient,
   payload: DeviceLogIngestPayload

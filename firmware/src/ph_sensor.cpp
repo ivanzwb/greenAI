@@ -2,7 +2,7 @@
 #include "ph_sensor.h"
 
 bool phRawLooksValid(int raw) {
-    return raw > 20 && raw < 4080;
+    return raw > 20 && raw < PH_ADC_HIGH_SAT_RAW;
 }
 
 bool phReadOfficial(int* rawAvgOut, float* phOut) {
@@ -29,6 +29,17 @@ bool phReadOfficial(int* rawAvgOut, float* phOut) {
     }
     int rawAvg = (int)(sum / 6);
 
+    if (rawAvgOut) *rawAvgOut = rawAvg;
+
+    if (rawAvg >= PH_ADC_HIGH_SAT_RAW) {
+        if (phOut) *phOut = NAN;
+        return false;
+    }
+    if (rawAvg <= 20) {
+        if (phOut) *phOut = NAN;
+        return false;
+    }
+
     float voltage = (float)sum * 3.3f / 4095.0f / 6.0f;
 #if PH_USE_VOLTAGE_DIVIDER_3
     voltage *= 3.0f;
@@ -36,8 +47,6 @@ bool phReadOfficial(int* rawAvgOut, float* phOut) {
     float ph = PH_SLOPE * voltage + PH_OFFSET;
     ph = constrain(ph, 0.0f, 14.0f);
 
-    if (rawAvgOut) *rawAvgOut = rawAvg;
-    if (phOut)     *phOut     = ph;
-
-    return phRawLooksValid(rawAvg);
+    if (phOut) *phOut = ph;
+    return true;
 }

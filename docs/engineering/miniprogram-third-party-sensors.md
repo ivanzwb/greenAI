@@ -92,7 +92,7 @@
 
 1. 小程序（JWT）：`POST /devices/binding-codes` → `{ code, expiresAt }`（约 10 分钟，表 `DeviceBindingCode`）。
 2. 固件：SoftAP 配网页把 `code` 写入 NVS；STA 联网且 NTP 可用后 `POST {apiBase}/devices/claim-binding-code`，body `{ code, hardwareId }`（无需签名）。
-3. 服务端：消费码并 upsert `Device(userId, hardwareId)`；若该 `hardwareId` 已属于其他用户则 `409`。可选在响应中返回 `sensorKey`（与 `SENSOR_HMAC_SECRET` 相同）供设备写入 NVS，**务必全程 HTTPS**。
+3. 服务端：消费码并 upsert `Device(userId, hardwareId)`；若该 `hardwareId` 已属于其他用户则 `409`。若配置了 `SENSOR_HMAC_SECRET`，响应中可返回 `sensorKey`（与密钥相同）供设备写入 NVS，**务必全程 HTTPS**。**不再返回 `userId`**：设备端只存 `apiBase` + `sensorKey`，用户与植物的归属一律由服务端按 `hardwareId` 查 `Device` 维护。
 
 ### 6.1 接口
 
@@ -103,6 +103,7 @@
   - `x-signature`：`hex(HMAC_SHA256(SENSOR_HMAC_SECRET, ts + "\n" + sha256_hex(rawBody)))`，**小写十六进制**
 - 时钟偏差：服务端容忍 **±300 秒**，设备需通过 NTP 或上一次响应的 `Date` 头校时
 - 鉴权失败：`401 { "error": "invalid_signature" }`
+- 设备未在服务端登记（未成功 claim）：`404 { "error": "device_not_registered" }`
 - 未配置 `SENSOR_HMAC_SECRET`：`503 { "error": "sensor_ingest_disabled" }`
 
 ### 6.2 请求体
@@ -110,8 +111,6 @@
 ```json
 {
   "hardwareId": "esp32-aabbccddeeff",
-  "userId": "ckxxxx...",
-  "plantId": "ckyyyy...",
   "readings": [
     { "measuredAt": "2026-05-20T10:00:00.000Z", "tempC": 22.4, "soilMoisture": 42.5, "phLevel": 6.5, "lux": 320 },
     { "measuredAt": "2026-05-20T10:15:00.000Z", "tempC": 22.6, "soilMoisture": 41.8 }
@@ -119,9 +118,7 @@
 }
 ```
 
-- `hardwareId`：设备序列号 / MAC，与 `userId` 联合唯一定位一条 `Device` 记录。
-- `userId`：**推荐闭环**：用户在小程序「设置」调用 `POST /devices/binding-codes` 生成 **10 分钟有效的一次性绑定码**；自研固件在 SoftAP 配网页填写该码，STA 联网后 `POST /devices/claim-binding-code`（无需 JWT）提交 `{ code, hardwareId }`，服务端校验后 **预建 `Device` 行** 并返回 `userId`（若配置了 `SENSOR_HMAC_SECRET` 可一并返回 `sensorKey` 供设备写入 NVS）。仍支持运维在配网页 **手工写入 userId** 的旧流程，但不推荐。
-- `plantId`：**可选**。传入后服务端会校验该植物属于 `userId`，并 upsert 到 `Device.plantId`；care planning 会针对该植物汇聚本设备的读数。传 `null` 可解除绑定，不传则保持现状。未绑定植物的房间级设备也可上报，数据落库供运维查询，不会自动进入某株植物的计算。
+- `hardwareId`：设备物理标识（如 `esp32-` + MAC）。服务端用其查找已 claim 的 `Device`，得到所属 `userId` 与当前 `plantId`（**不由设备 JSON 携带**；植物绑定在小程序 `PATCH /devices/:id`）。
 - `readings[]`：1–200 笔；至少包含 `tempC` / `soilMoisture` / `phLevel` / `lux` 其中之一。
   - `tempC`：环境温度 ℃（探针热敏或设备内置传感器）。
   - `soilMoisture`：**土壤湿度 0..100 %**（电容 / 电阻探针）。注意**不是空气相对湿度**。
@@ -132,15 +129,13 @@
 ### 6.2a 运行日志上报（可选）
 
 - 方法：`POST /internal/sensors/logs`
-- 请求头、时钟偏差、鉴权错误、503 条件与 **§6.1 传感器 ingest 完全相同**（同一 `SENSOR_HMAC_SECRET`、同一签名串 `ts + "\n" + sha256_hex(rawBody)`）。
+- 请求头、时钟偏差、鉴权错误、**未登记设备 404**、503 条件与 **§6.1 传感器 ingest 完全相同**（同一 `SENSOR_HMAC_SECRET`、同一签名串 `ts + "\n" + sha256_hex(rawBody)`）。
 
 ### 6.3a 请求体（日志）
 
 ```json
 {
   "hardwareId": "esp32-aabbccddeeff",
-  "userId": "ckxxxx...",
-  "plantId": "ckyyyy...",
   "entries": [
     { "level": "warn", "message": "Wi-Fi 重连失败 code=201", "occurredAt": 1716710400, "meta": { "rssi": -82 } },
     { "message": "boot fw=0.9.1" }
@@ -151,9 +146,13 @@
 - `entries`：1–200 条；每条 `message` 必填（最长 16 000 字符）；`level` 可选，枚举 `debug` / `info` / `warn` / `error`，缺省为 `info`。
 - `occurredAt`：可选，ISO 8601 或 Unix 秒；缺省仅记录服务端入库时间。
 - `meta`：可选，最多 32 个 string 键，值为 string / number / boolean（便于固件附带版本号、错误码等）。
-- `plantId`：语义与传感器 ingest 一致（可选、可 `null` 解绑）。
 
-### 6.3b 响应（日志）
+### 6.3b 设备配置拉取（固件）
+
+- 方法：`POST /internal/devices/config`
+- 请求体：`{ "hardwareId": "..." }`（签名与 ingest 相同）。服务端按 `hardwareId` 查设备并返回 `wateringMessage`（JSON 字段 `wateringMessage`，可为 `null`）。
+
+### 6.3c 响应（日志）
 
 ```json
 { "deviceId": "ckyyyy...", "inserted": 2 }
@@ -186,7 +185,7 @@ loop every 10 minutes:
     sample tempC, rh, lux
     push to local ring buffer
     if buffer >= 6 readings or 30min since last upload:
-        body  := json({ hardwareId, userId, readings })
+        body  := json({ hardwareId, readings })
         ts    := unix_seconds(now())
         h     := sha256_hex(body)
         sig   := hmac_sha256_hex(SENSOR_SECRET, ts + "\n" + h)

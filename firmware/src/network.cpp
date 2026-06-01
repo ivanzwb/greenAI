@@ -4,6 +4,18 @@
 
 #if STAGE_WIFI_PROV
 
+/* 预处理器不用 sizeof(字符串)：部分 Xtensa 工具链在 #if 里不支持。 */
+#  if GREENAI_PROVISION_EMBED_API_BASE
+#    define GREENAI_HAS_BUILTIN_API_BASE 1
+#  else
+#    define GREENAI_HAS_BUILTIN_API_BASE 0
+#  endif
+
+#  if GREENAI_HAS_BUILTIN_API_BASE
+static_assert(sizeof(GREENAI_API_BASE_DEFAULT) > 1u,
+              "GREENAI_PROVISION_EMBED_API_BASE: set GREENAI_API_BASE_DEFAULT to a quoted non-empty URL");
+#  endif
+
 #  include <WiFi.h>
 #  include <WebServer.h>
 #  include <DNSServer.h>
@@ -51,7 +63,8 @@ static bool connectSTA(const String& ssid, const String& pass);
 // ============================================================
 //  HTML — single embedded page
 // ============================================================
-static const char PAGE_HTML[] PROGMEM = R"HTML(
+static const char PAGE_HTML[] PROGMEM =
+  R"HTML(
 <!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>植物管家 WiFi 配网</title>
@@ -67,6 +80,9 @@ static const char PAGE_HTML[] PROGMEM = R"HTML(
  .err{background:#fdd;color:#b71c1c}
  .info{background:#e3f2fd;color:#0d47a1}
  label{font-size:13px;color:#555;display:flex;align-items:center;gap:6px;margin-top:6px}
+ details.dev{margin-top:10px;border:1px dashed #d2d2d7;border-radius:8px;padding:8px 10px;background:#fafafa}
+ details.dev summary{cursor:pointer;font-size:13px;color:#666;user-select:none}
+ details.dev .inner{padding-top:8px}
  .net-list{max-height:220px;overflow-y:auto}
  .net{padding:10px;border-bottom:1px solid #eee;cursor:pointer;display:flex;align-items:center;gap:10px}
  .net:hover{background:#f0f0f0}
@@ -136,25 +152,36 @@ static const char PAGE_HTML[] PROGMEM = R"HTML(
     </label>
     <input id="pass" type="password">
     <label>
-     <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1 17.9A8 8 0 0 1 4.1 13H8c.1 2 .5 3.9 1.1 5.5-.6.5-1.1 1-1.1 1.4zM8 11c.1-1.7.5-3.3 1-4.6.5-.4 1-.9 1.6-1.4-.5 1.7-.6 4-.6 6zm5 8.9c-.4 0-.9-.5-1.5-1.1.7-1.4 1.1-3 1.2-4.8h3.9a8 8 0 0 1-3.6 5.9z"/></svg>
-     后端 API 根地址 (无路径，如 http://192.168.1.10:3000)
-    </label>
-    <input id="url" placeholder="http://192.168.1.10:3000">
-    <label>
      <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 12c2.2 0 4-1.8 4-4s-1.8-4-4-4-4 1.8-4 4 1.8 4 4 4zm0 2c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg>
-     绑定码（在小程序「设置」里生成，10 分钟内有效）
+     绑定码（在小程序「设置 → 传感器绑定码」生成，约 10 分钟内有效）
     </label>
-    <input id="bind" placeholder="16 位十六进制" autocomplete="off">
-    <label>
-     <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zm-6 9a2 2 0 1 1 0-4 2 2 0 0 1 0 4zM9 8V6a3 3 0 0 1 6 0v2H9z"/></svg>
-     上报密钥（可选；服务端未自动下发时填写，与 SENSOR_HMAC_SECRET 相同）
-    </label>
-    <input id="key" type="password" placeholder="勿泄露" autocomplete="new-password">
-    <label>
-     <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 22c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9zm0-20C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
-     植物 ID (可选，绑定到某株植物时填写)
-    </label>
-    <input id="plant" placeholder="留空表示房间级设备" autocomplete="off">
+    <input id="bind" required minlength="8" placeholder="粘贴绑定码" autocomplete="off">
+)HTML"
+#if GREENAI_HAS_BUILTIN_API_BASE
+  R"HTML(
+    <details class="dev">
+     <summary>关于本页（一般无需展开）</summary>
+     <div class="inner">
+      <p style="font-size:13px;color:#666;margin:0;line-height:1.4">本固件已内置云端 API 根地址。</p>
+      <input type="hidden" id="url" value=)HTML" GREENAI_API_BASE_DEFAULT R"HTML(>
+     </div>
+    </details>
+)HTML"
+#else
+  R"HTML(
+    <details class="dev">
+     <summary>自托管：填写后端 API 根地址</summary>
+     <div class="inner">
+      <label>
+       <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#555"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1 17.9A8 8 0 0 1 4.1 13H8c.1 2 .5 3.9 1.1 5.5-.6.5-1.1 1-1.1 1.4zM8 11c.1-1.7.5-3.3 1-4.6.5-.4 1-.9 1.6-1.4-.5 1.7-.6 4-.6 6zm5 8.9c-.4 0-.9-.5-1.5-1.1.7-1.4 1.1-3 1.2-4.8h3.9a8 8 0 0 1-3.6 5.9z"/></svg>
+       后端 API 根地址（无路径，如 http://192.168.1.10:3000）
+      </label>
+      <input id="url" placeholder="http://192.168.1.10:3000" autocomplete="off">
+     </div>
+    </details>
+)HTML"
+#endif
+  R"HTML(
     <button type="submit">
      <svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>
      保存并连接
@@ -194,7 +221,7 @@ function scan(){
 function pick(s){el('ssid').value=s;el('pass').focus()}
 function submit_(){
  const r=el('result');r.className='status info';r.textContent='⏳ 提交中…';
- const body=new URLSearchParams({s:el('ssid').value,p:el('pass').value,u:el('url').value,bind:el('bind').value,key:el('key').value,plant:el('plant').value});
+ const body=new URLSearchParams({s:el('ssid').value,p:el('pass').value,u:el('url').value,bind:el('bind').value});
  fetch('/save',{method:'POST',body}).then(r=>r.json()).then(d=>{
   if(d.ok){r.className='status ok';r.textContent='✓ 已保存，正在连接 WiFi…';
     setTimeout(poll,3000)}
@@ -263,9 +290,10 @@ static void hSave() {
     String ssid = g_http.arg("s");
     String pass = g_http.arg("p");
     String url   = g_http.arg("u");
-    String bind  = g_http.arg("bind");
-    String key   = g_http.arg("key");
-    String plant = g_http.arg("plant");
+#  if GREENAI_HAS_BUILTIN_API_BASE
+    if (url.length() == 0) url = GREENAI_API_BASE_DEFAULT;
+#  endif
+    String bind = g_http.arg("bind");
     if (ssid.length() == 0) {
         g_http.send(200, "application/json", "{\"ok\":false,\"err\":\"SSID empty\"}");
         return;
@@ -277,11 +305,10 @@ static void hSave() {
     if (url.length()) g_prefs.putString("apiBase", url);
     if (bind.length() >= 8) {
         g_prefs.putString("bindCode", bind);
+        g_prefs.remove("sensorKey");
         g_prefs.remove("userId");
-        if (key.length() == 0) g_prefs.remove("sensorKey");
+        g_prefs.remove("plantId");
     }
-    if (key.length() > 0) g_prefs.putString("sensorKey", key);
-    g_prefs.putString("plantId", plant);
     greenaiReloadConfig(g_prefs);
 
     g_http.send(200, "application/json", "{\"ok\":true}");
@@ -353,10 +380,16 @@ static void stopSoftAP() {
 // ============================================================
 //  STA logic
 // ============================================================
+/** 键不存在时不调用 getString，避免 NVS NOT_FOUND 刷 ERROR 日志 */
+static String prefStrIfKey(Preferences& pr, const char* key) {
+    if (!pr.isKey(key)) return String();
+    return pr.getString(key, "");
+}
+
 static bool loadSavedCreds() {
-    g_ssid = g_prefs.getString("ssid", "");
+    g_ssid = prefStrIfKey(g_prefs, "ssid");
     if (g_ssid.length() == 0) return false;
-    g_pass = g_prefs.getString("pass", "");
+    g_pass = prefStrIfKey(g_prefs, "pass");
     greenaiReloadConfig(g_prefs);
     return true;
 }
@@ -427,11 +460,11 @@ bool wifiIsConnected() {
 void wifiClearCreds() {
     g_prefs.remove("ssid");
     g_prefs.remove("pass");
-    g_prefs.remove("serverUrl");
     g_prefs.remove("apiBase");
     g_prefs.remove("bindCode");
-    g_prefs.remove("userId");
     g_prefs.remove("sensorKey");
+    g_prefs.remove("serverUrl");
+    g_prefs.remove("userId");
     g_prefs.remove("plantId");
     greenaiReloadConfig(g_prefs);
     Serial.println("[NVS] WiFi + cloud credentials cleared");
@@ -456,7 +489,14 @@ void uploadSensorData(const SensorData&) {}
 #  endif
 
 #else  // STAGE_WIFI_PROV == 0
-void wifiProvSetup() {}
+
+#  include <WiFi.h>
+
+void wifiProvSetup() {
+    // 关闭配网时仍可能残留默认 WiFi 模式；显式关闭射频可省电、减干扰，并避免与「关 WiFi 测 brownout」混用时的怪异状态。
+    WiFi.mode(WIFI_OFF);
+}
+
 void wifiProvLoop() {}
 void uploadSensorData(const SensorData&) {}
 bool wifiIsConnected() { return false; }

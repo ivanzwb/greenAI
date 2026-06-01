@@ -218,7 +218,6 @@ describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
       },
       payload: JSON.stringify({
         hardwareId: "test-hw",
-        userId: "test-user",
         readings: [{ measuredAt: new Date().toISOString(), tempC: 22.5 }],
       }),
     });
@@ -231,9 +230,11 @@ describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
       data: { openid: `it-sensor-${randomUUID()}` },
     });
     try {
+      await app!.prisma.device.create({
+        data: { userId: user.id, hardwareId: "hw-abc-001" },
+      });
       const body = JSON.stringify({
         hardwareId: "hw-abc-001",
-        userId: user.id,
         readings: [
           {
             measuredAt: new Date("2030-06-01T00:00:00.000Z").toISOString(),
@@ -310,7 +311,6 @@ describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
       },
       payload: JSON.stringify({
         hardwareId: "test-hw",
-        userId: "test-user",
         entries: [{ message: "hello" }],
       }),
     });
@@ -323,9 +323,11 @@ describe.skipIf(!runIntegration)("API internal — sensor ingest HMAC", () => {
       data: { openid: `it-devlog-${randomUUID()}` },
     });
     try {
+      await app!.prisma.device.create({
+        data: { userId: user.id, hardwareId: "hw-log-xyz" },
+      });
       const body = JSON.stringify({
         hardwareId: "hw-log-xyz",
-        userId: user.id,
         entries: [
           {
             level: "warn",
@@ -418,9 +420,8 @@ describe.skipIf(!runIntegration)("API device binding code", () => {
         }),
       });
       expect(claim.statusCode).toBe(200);
-      const body = claim.json() as { ok: boolean; userId: string; sensorKey?: string };
+      const body = claim.json() as { ok: boolean; sensorKey?: string };
       expect(body.ok).toBe(true);
-      expect(body.userId).toBe(user.id);
       if (process.env.SENSOR_HMAC_SECRET) {
         expect(body.sensorKey).toBe(process.env.SENSOR_HMAC_SECRET);
       }

@@ -24,11 +24,9 @@ const readingSchema = z
     { message: "at_least_one_metric_required" }
   );
 
+/** 设备侧只上报 hardwareId；userId / plantId 由服务端按已登记 Device 解析。 */
 const payloadSchema = z.object({
   hardwareId: z.string().min(1).max(128),
-  userId: z.string().min(1).max(64),
-  /** 可选：设备绑定的植物 id。传入时服务端会校验该植物属于 `userId`。 */
-  plantId: z.string().min(1).max(64).nullable().optional(),
   readings: z.array(readingSchema).min(1).max(200),
 });
 
@@ -46,15 +44,12 @@ const logEntrySchema = z.object({
 
 const logPayloadSchema = z.object({
   hardwareId: z.string().min(1).max(128),
-  userId: z.string().min(1).max(64),
-  plantId: z.string().min(1).max(64).nullable().optional(),
   entries: z.array(logEntrySchema).min(1).max(200),
 });
 
 /** 固件 POST /internal/devices/config 的请求体（HMAC 同 ingest）。 */
 const configPayloadSchema = z.object({
   hardwareId: z.string().min(1).max(128),
-  userId: z.string().min(1).max(64),
 });
 
 const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
@@ -105,28 +100,18 @@ const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({ error: "invalid_payload" });
     }
 
-    const userExists = await app.prisma.user.findUnique({
-      where: { id: parsed.data.userId },
-      select: { id: true },
+    const deviceRow = await app.prisma.device.findFirst({
+      where: { hardwareId: parsed.data.hardwareId },
+      select: { userId: true },
     });
-    if (!userExists) {
-      return reply.status(404).send({ error: "user_not_found" });
-    }
-
-    if (parsed.data.plantId) {
-      const plant = await app.prisma.plant.findFirst({
-        where: { id: parsed.data.plantId, userId: parsed.data.userId },
-        select: { id: true },
-      });
-      if (!plant) {
-        return reply.status(404).send({ error: "plant_not_found" });
-      }
+    if (!deviceRow) {
+      return reply.status(404).send({ error: "device_not_registered" });
     }
 
     const result = await ingestSensorReadings(app.prisma, {
       hardwareId: parsed.data.hardwareId,
-      userId: parsed.data.userId,
-      plantId: parsed.data.plantId ?? undefined,
+      userId: deviceRow.userId,
+      plantId: undefined,
       readings: parsed.data.readings.map((r) => ({
         measuredAt: toDate(r.measuredAt),
         tempC: r.tempC,
@@ -170,28 +155,18 @@ const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
       return reply.status(400).send({ error: "invalid_payload" });
     }
 
-    const userExists = await app.prisma.user.findUnique({
-      where: { id: parsed.data.userId },
-      select: { id: true },
+    const deviceRow = await app.prisma.device.findFirst({
+      where: { hardwareId: parsed.data.hardwareId },
+      select: { userId: true },
     });
-    if (!userExists) {
-      return reply.status(404).send({ error: "user_not_found" });
-    }
-
-    if (parsed.data.plantId) {
-      const plant = await app.prisma.plant.findFirst({
-        where: { id: parsed.data.plantId, userId: parsed.data.userId },
-        select: { id: true },
-      });
-      if (!plant) {
-        return reply.status(404).send({ error: "plant_not_found" });
-      }
+    if (!deviceRow) {
+      return reply.status(404).send({ error: "device_not_registered" });
     }
 
     const result = await ingestDeviceLogs(app.prisma, {
       hardwareId: parsed.data.hardwareId,
-      userId: parsed.data.userId,
-      plantId: parsed.data.plantId ?? undefined,
+      userId: deviceRow.userId,
+      plantId: undefined,
       entries: parsed.data.entries.map((e) => ({
         level: e.level ?? "info",
         message: e.message,
@@ -209,7 +184,7 @@ const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
-   * 设备配置拉取：固件按 hardwareId 取回当前用户在小程序为该设备保存的配置。
+   * 设备配置拉取：固件仅上报 `hardwareId`，服务端按已登记设备返回 `wateringMessage`。
    * 与 ingest 共用 SENSOR_HMAC_SECRET 与签名格式 (x-timestamp + x-signature)。
    * 响应：
    *   {
@@ -239,10 +214,7 @@ const sensorIngestRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const device = await app.prisma.device.findFirst({
-      where: {
-        hardwareId: parsed.data.hardwareId,
-        userId: parsed.data.userId,
-      },
+      where: { hardwareId: parsed.data.hardwareId },
       select: { wateringMessage: true },
     });
     if (!device) {

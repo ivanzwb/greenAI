@@ -11,11 +11,9 @@
 #include "config.h"
 #include "tts.h"
 
-// ---- NVS 配置（由配网页写入）----
+// ---- NVS 配置（配网写 apiBase/bindCode；claim 写 sensorKey 并清 bindCode）----
 static String g_apiBase;
-static String g_userId;
 static String g_sensorKey;
-static String g_plantId;
 static String g_bindCode;
 
 static unsigned long g_lastSensorPostMs = 0;
@@ -36,20 +34,22 @@ static int  g_logCount = 0;
 
 static bool g_bootEnqueued = false;
 
+/** 避免键不存在时 Preferences::getString 触发 ESP-IDF NVS ERROR 日志 */
+static String prefStringOrEmpty(Preferences& prefs, const char* key) {
+  if (!prefs.isKey(key)) return String();
+  return prefs.getString(key, "");
+}
+
 void greenaiReloadConfig(Preferences& prefs) {
-  g_apiBase   = prefs.getString("apiBase", "");
-  if (g_apiBase.length() == 0)
-    g_apiBase = prefs.getString("serverUrl", "");
-  g_userId    = prefs.getString("userId", "");
-  g_sensorKey = prefs.getString("sensorKey", "");
-  g_plantId   = prefs.getString("plantId", "");
-  g_bindCode  = prefs.getString("bindCode", "");
+  g_apiBase   = prefStringOrEmpty(prefs, "apiBase");
+  g_sensorKey = prefStringOrEmpty(prefs, "sensorKey");
+  g_bindCode  = prefStringOrEmpty(prefs, "bindCode");
   while (g_apiBase.length() && g_apiBase.endsWith("/"))
     g_apiBase.remove(g_apiBase.length() - 1);
 }
 
 bool greenaiIsConfigured() {
-  return g_apiBase.length() > 0 && g_userId.length() > 0 && g_sensorKey.length() >= 16;
+  return g_apiBase.length() > 0 && g_sensorKey.length() >= 16;
 }
 
 static String hardwareId() {
@@ -121,7 +121,7 @@ static bool extractJsonStringField(const String& json, const char* key, String& 
 void greenaiTryClaimBindingCode(Preferences& prefs) {
   greenaiReloadConfig(prefs);
   if (g_apiBase.length() == 0 || g_bindCode.length() < 8) return;
-  if (g_userId.length() > 0) return;
+  if (g_sensorKey.length() >= 16) return;
   if (!WiFi.isConnected()) return;
   if (!ensureNetworkTime()) return;
 
@@ -142,12 +142,7 @@ void greenaiTryClaimBindingCode(Preferences& prefs) {
   http.end();
 
   if (code >= 200 && code < 300) {
-    String uid, sk;
-    if (!extractJsonStringField(resp, "userId", uid)) {
-      greenaiLog("warn", "claim_no_userid");
-      return;
-    }
-    prefs.putString("userId", uid);
+    String sk;
     if (extractJsonStringField(resp, "sensorKey", sk) && sk.length() >= 16) {
       prefs.putString("sensorKey", sk);
     }
@@ -266,13 +261,7 @@ void greenaiFlushLogs(unsigned long nowMillis) {
   if (!ensureNetworkTime()) return;
 
   String hid = hardwareId();
-  String body =
-      "{\"hardwareId\":\"" + jsonEscape(hid.c_str()) + "\",\"userId\":\"" + jsonEscape(g_userId.c_str()) + "\"";
-
-  if (g_plantId.length() > 0)
-    body += ",\"plantId\":\"" + jsonEscape(g_plantId.c_str()) + "\"";
-
-  body += ",\"entries\":[";
+  String body = String("{\"hardwareId\":\"") + jsonEscape(hid.c_str()) + String("\",\"entries\":[");
   for (int i = 0; i < g_logCount; i++) {
     if (i) body += ",";
     body += "{\"level\":\"" + String(g_logLevels[i]) + "\",\"message\":\"";
@@ -312,13 +301,8 @@ void greenaiMaybePostSensor(const SensorData& d, unsigned long nowMillis) {
   }
 
   time_t measured = time(nullptr);
-  String hid       = hardwareId();
-  String body      = "{\"hardwareId\":\"" + jsonEscape(hid.c_str()) + "\",\"userId\":\"" +
-                jsonEscape(g_userId.c_str()) + "\"";
-  if (g_plantId.length() > 0)
-    body += ",\"plantId\":\"" + jsonEscape(g_plantId.c_str()) + "\"";
-
-  body += ",\"readings\":[{\"measuredAt\":";
+  String hid  = hardwareId();
+  String body = "{\"hardwareId\":\"" + jsonEscape(hid.c_str()) + "\",\"readings\":[{\"measuredAt\":";
   body += String(static_cast<long>(measured));
 
   if (hasTemp) body += ",\"tempC\":" + String(d.temperature, 2);
@@ -349,8 +333,7 @@ void greenaiMaybeFetchConfig(unsigned long nowMillis) {
   if (g_lastConfigFetchMs != 0 && (nowMillis - g_lastConfigFetchMs) < CONFIG_FETCH_INTERVAL_MS) return;
 
   const String hid  = hardwareId();
-  const String body = String("{\"hardwareId\":\"") + jsonEscape(hid.c_str()) +
-                      String("\",\"userId\":\"") + jsonEscape(g_userId.c_str()) + String("\"}");
+  const String body = String("{\"hardwareId\":\"") + jsonEscape(hid.c_str()) + String("\"}");
 
   int    code = 0;
   String err;
@@ -374,7 +357,7 @@ void greenaiMaybeFetchConfig(unsigned long nowMillis) {
     Serial.println("[greenAI] config: NVS open fail");
     return;
   }
-  const String old = p.getString("waterMsg", "");
+  const String old = prefStringOrEmpty(p, "waterMsg");
   if (hasCustom) {
     if (old != wm) {
       p.putString("waterMsg", wm);

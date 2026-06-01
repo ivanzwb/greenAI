@@ -28,7 +28,8 @@ static void serialPrint(const SensorData& d) {
 #if STAGE_PH
     Serial.printf("phRaw=%d,", d.phRaw);
     if (d.sensorOK[3]) Serial.printf("pH=%.1f", d.pH);
-    else               Serial.print("pH=--(rail)");
+    else if (d.phRaw >= PH_ADC_HIGH_SAT_RAW) Serial.print("pH=--(sat)");
+    else Serial.print("pH=--(rail)");
 #endif
     Serial.println();
 }
@@ -83,6 +84,8 @@ void setup() {
 
     // --- I²C 初始化 ---
     Wire.begin(PIN_SHT_SDA, PIN_SHT_SCL);
+    Wire.setClock(100000);   // 与 OLED 共线：低速更稳（杜邦线/洞洞板）
+    Wire.setTimeOut(50);     // 避免 I²C 卡死拖死主循环
     Serial.printf("[Wire ] SDA=GPIO%d SCL=GPIO%d (SHT30 + OLED)\n", PIN_SHT_SDA, PIN_SHT_SCL);
     Wire1.begin(PIN_LIGHT_SDA, PIN_LIGHT_SCL);
     Wire1.setClock(100000);     // BH1750 用低速更稳，避免长线/弱上拉导致 stuck
@@ -176,6 +179,9 @@ static void detectWatering(const SensorData& d) {
             g_soilWasDry          = false;
             Serial.printf("[WATER] event detected, EMA=%.1f%%\n", g_soilEma);
             ttsSpeakWatering();
+#  if STAGE_OLED
+            displayWateringWink();
+#  endif
         }
     }
 }

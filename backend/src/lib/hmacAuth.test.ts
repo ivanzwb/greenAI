@@ -54,7 +54,6 @@ describe("verifyCronHmac", () => {
 describe("verifyDeviceIngestHmac", () => {
   const body = JSON.stringify({
     hardwareId: "hw-1",
-    userId: "u-1",
     readings: [{ measuredAt: "2030-06-01T00:00:00.000Z", tempC: 22 }],
   });
 

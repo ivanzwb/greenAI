@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <BH1750.h>
 #include <DFRobot_SHT3x.h>
+#include <cmath>
 
 // 提前声明（实际定义在文件后面）
 extern bool g_bh1750Available;
@@ -100,11 +101,67 @@ bool initSensors() {
 
     analogReadResolution(12);
     analogSetAttenuation(ADC_11db);
+    pinMode(PIN_SOIL_MOISTURE, INPUT);
+#if STAGE_PH
+    pinMode(PIN_PH, INPUT);
+    for (int i = 0; i < 5; i++) {
+        (void)analogRead(PIN_PH);
+        delayMicroseconds(200);
+    }
+    {
+        const int        phRawOnce = analogRead(PIN_PH);
+        const uint32_t   phMvOnce  = analogReadMilliVolts(PIN_PH);
+        Serial.printf("[ADC] pH selftest GPIO%d: raw=%d mV=%u (<%d 断线/GND；>=%d 顶格→降Po/分压后标定)\n",
+                      PIN_PH, phRawOnce, (unsigned)phMvOnce, 21, PH_ADC_HIGH_SAT_RAW);
+    }
+#endif
     Serial.printf("[ADC] Soil=GPIO%d, pH=GPIO%d, 12-bit 11dB\n",
                   PIN_SOIL_MOISTURE, PIN_PH);
     Serial.printf("[ADC] Soil cal: dry>=%d wet<=%d (see test_soil)\n",
                   SOIL_ADC_DRY, SOIL_ADC_WET);
     return g_sht3xAvailable || g_bh1750Available;
+}
+
+// ============================================================
+//  SHT30 读数合理性（DFRobot 库在 I2C 失败时常返回 0.0 而非 NaN）
+// ============================================================
+static bool shtReadLooksValid(float t, float h) {
+    if (isnan(t) || isnan(h)) return false;
+    // 两路同时「接近 0」在正常运行里极罕见，且与 Wire 报错同时出现时多为失败哨兵值
+    if (fabsf(t) < 1e-3f && fabsf(h) < 1e-3f) return false;
+    // SHT30 规格量级（略放宽）
+    if (t < -45.0f || t > 130.0f || h < 0.0f || h > 101.0f) return false;
+    return true;
+}
+
+// SHT30 与 OLED 共用 Wire；连续读失败时做 SCL 解锁 + 重新 begin（与 BH1750 在 Wire1 上恢复思路类似）
+static int               g_shtReadFailStreak    = 0;
+static unsigned long     g_shtLastWireRecoverMs = 0;
+static const int         SHT_WIRE_FAIL_FOR_RECOVER       = 6;
+static const unsigned long SHT_WIRE_RECOVER_COOLDOWN_MS    = 5000UL;
+
+static void sht30TryRecoverSharedWire() {
+    unsigned long now = millis();
+    if (now - g_shtLastWireRecoverMs < SHT_WIRE_RECOVER_COOLDOWN_MS) return;
+    g_shtLastWireRecoverMs = now;
+    Serial.println("[SHT30] read failing — bus recover + re-init (Wire shared with OLED)…");
+    i2cBusRecover(PIN_SHT_SDA, PIN_SHT_SCL);
+    delay(5);
+    Wire.begin(PIN_SHT_SDA, PIN_SHT_SCL);
+    Wire.setClock(100000);
+    Wire.setTimeOut(50);
+    delay(10);
+    int tries = 0;
+    while (sht3x.begin() != 0) {
+        if (++tries >= 3) {
+            Serial.println("[SHT30] recover: begin() still FAIL (check SDA/SCL/VCC/GND)");
+            return;
+        }
+        delay(50);
+    }
+    if (!sht3x.softReset()) Serial.println("[SHT30] recover: softReset returned false");
+    delay(80);
+    Serial.println("[SHT30] recover: done");
 }
 
 // ============================================================
@@ -116,10 +173,17 @@ SensorData readAllSensors() {
     if (g_sht3xAvailable) {
         float t = sht3x.getTemperatureC();
         float h = sht3x.getHumidityRH();
-        if (!isnan(t) && !isnan(h)) {
+        const bool ok = !isnan(t) && !isnan(h) && shtReadLooksValid(t, h);
+        if (ok) {
             d.temperature = t;
             d.humidity    = h;
             d.sensorOK[0] = true;
+            g_shtReadFailStreak = 0;
+        } else {
+            if (++g_shtReadFailStreak >= SHT_WIRE_FAIL_FOR_RECOVER) {
+                sht30TryRecoverSharedWire();
+                g_shtReadFailStreak = 0;
+            }
         }
     }
 
@@ -139,13 +203,14 @@ SensorData readAllSensors() {
 #if STAGE_PH
     int   phRawAvg = 0;
     float phVal    = NAN;
-    d.phRaw = 0;
-    if (phReadOfficial(&phRawAvg, &phVal)) {
-        d.phRaw = phRawAvg;
-        d.pH    = phVal;
+    const bool phOk = phReadOfficial(&phRawAvg, &phVal);
+    d.phRaw = phRawAvg;
+    if (phOk && isfinite(phVal)) {
+        d.pH          = phVal;
         d.sensorOK[3] = true;
-    } else if (phRawLooksValid(phRawAvg)) {
-        d.phRaw = phRawAvg;
+    } else {
+        d.pH          = NAN;
+        d.sensorOK[3] = false;
     }
 #endif
 

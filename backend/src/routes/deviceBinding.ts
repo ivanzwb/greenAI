@@ -59,8 +59,8 @@ const deviceBindingRoutes: FastifyPluginAsync = async (app) => {
   );
 
   /**
-   * 固件在 STA 联网后调用：用绑定码 + hardwareId 换 userId，并预建 Device 行。
-   * 若服务端配置了 SENSOR_HMAC_SECRET，会一并返回供设备写入 NVS（与既有 ingest 共用）。
+   * 固件在 STA 联网后调用：用绑定码 + hardwareId 预建 `Device` 行。
+   * 若服务端配置了 SENSOR_HMAC_SECRET，会返回供设备写入 NVS（与 ingest 共用）。
    */
   app.post("/devices/claim-binding-code", async (req, reply) => {
     const ip = clientIp(req);
@@ -128,10 +128,7 @@ const deviceBindingRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const config = loadConfig();
-      const out: { ok: true; userId: string; sensorKey?: string } = {
-        ok: true,
-        userId: result.userId,
-      };
+      const out: { ok: true; sensorKey?: string } = { ok: true };
       if (config.SENSOR_HMAC_SECRET) {
         out.sensorKey = config.SENSOR_HMAC_SECRET;
       }

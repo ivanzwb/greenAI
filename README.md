@@ -42,7 +42,7 @@
 | GET | `/devices/:id/logs` | 当前用户某设备的最近运行日志（JWT，`?limit=` 默认 50，最大 200）|
 | PATCH | `/devices/:id` | 设备绑定 / 解绑植物、改名 |
 | POST | `/devices/binding-codes` | 登录用户生成一次性设备绑定码（自研固件 claim）|
-| POST | `/devices/claim-binding-code` | 固件用绑定码 + hardwareId 换 userId，预建 `Device`（可选返回 `sensorKey`）|
+| POST | `/devices/claim-binding-code` | 固件用绑定码 + `hardwareId` 预建 `Device`（可选返回 `sensorKey`；`userId` 仅服务端内部使用）|
 | GET | `/plants/:id/sensor/series` | 植物绑定设备的近期读数序列（默认 72h，下采样 ≤240 点）|
 | GET | `/metrics/summary` | 内部统计概览 |
 | POST | `/internal/reminders` | HMAC 鉴权的内部提醒任务 |

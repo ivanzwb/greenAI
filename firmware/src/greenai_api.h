@@ -5,15 +5,15 @@
 
 #include "sensors.h"
 
-/** 从 NVS 读取 API Base、userId、sensorKey、plantId（配网页提交后写入）。 */
+/** 从 NVS 读取 apiBase、sensorKey、bindCode（SoftAP 写 Wi‑Fi/bind/apiBase；claim 写 sensorKey）。 */
 void greenaiReloadConfig(Preferences& prefs);
 
-/** 已配置 apiBase + userId + sensorKey（plantId 可选）。 */
+/** 已配置 apiBase + sensorKey（≥16），可带签名上报。 */
 bool greenaiIsConfigured();
 
 /**
  * STA 联网且 NTP 可用时，用 NVS 中的 bindCode 调用 POST /devices/claim-binding-code，
- * 写入 userId / sensorKey 并清除 bindCode（与小程序「生成绑定码」闭环）。
+ * 写入 sensorKey 并清除 bindCode（与小程序「生成绑定码」闭环）。
  */
 void greenaiTryClaimBindingCode(Preferences& prefs);
 

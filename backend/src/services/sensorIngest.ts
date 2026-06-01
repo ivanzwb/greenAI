@@ -14,16 +14,11 @@ export type SensorReadingInput = {
 };
 
 export type SensorIngestPayload = {
-  /** 设备物理标识（厂商序列号或 MAC）。 */
   hardwareId: string;
-  /** 设备所属用户。设备端固件出厂时通过用户绑定流程烧录。 */
+  /** 由路由层根据 `hardwareId` 查库得到，不来自设备 JSON。 */
   userId: string;
-  /**
-   * 可选：设备绑定到的具体植物 id。传入后会 upsert 到 `Device.plantId`，
-   * 以后 care planning 会针对该植物使用本设备的读数。为 `null` 代表“解除绑定”。
-   */
+  /** 不使用设备上报；传 `undefined` 表示不因 ingest 改写 `Device.plantId`（植物绑定在小程序 PATCH）。 */
   plantId?: string | null;
-  /** 单次请求可携带多笔读数（设备离线缓冲后批量补传）。 */
   readings: SensorReadingInput[];
 };
 
@@ -36,7 +31,8 @@ export type SensorIngestResult = {
 
 /**
  * 幂等 ingest：
- *  - 按 (userId, hardwareId) upsert 设备
+ *  - 设备须已通过 claim 预建 `Device`；按 (userId, hardwareId) upsert 仅用于定位已有行
+ *  - 不因 ingest 改写 `plantId`
  *  - 按 (deviceId, measuredAt) 唯一约束去重写入读数
  *  - 刷新 device.lastSeenAt 为本批次最新 measuredAt
  */
