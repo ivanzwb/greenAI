@@ -227,6 +227,8 @@ greenAI/
 │   └── Dockerfile
 ├── miniprogram/              # 微信小程序
 │   ├── pages/                # 页面（首页、识别、知识、我的、设置等）
+│   ├── images/icons-src/     # Tab / 首页图标 SVG 源稿
+│   ├── images/icons-png/     # `npm run icons:render` 生成的 PNG（小程序引用）
 │   ├── utils/                # 工具（API 请求封装）
 │   └── data/                 # 静态知识数据
 ├── uniapp/                   # uni-app（Vue3+Vite：H5 / App / 各端小程序）
@@ -244,6 +246,7 @@ greenAI/
 │       └── backup.sh         # PostgreSQL 备份
 ├── scripts/
 │   ├── ship.mjs              # 一键提交+推送脚本
+│   ├── render-svg-icons.mjs  # SVG → PNG（小程序图标）
 │   └── write-uniapp-tab-placeholders.mjs  # 生成 uni-app Tab 占位图标
 └── .github/workflows/
     └── ci.yml                # GitHub Actions CI

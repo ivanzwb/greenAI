@@ -7,6 +7,10 @@
     "verify:admin": "npm run build --prefix admin",
     "verify:backend": "npm run build --prefix backend && npm run test --prefix backend",
     "dev:uniapp:h5": "npm run dev:h5 --prefix uniapp",
+    "icons:render": "node scripts/render-svg-icons.mjs",
     "ship": "node scripts/ship.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
   }
 }

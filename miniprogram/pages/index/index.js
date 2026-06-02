@@ -38,8 +38,8 @@ Page({
     weatherSummaryLine: "",
     growthHint: "",
 
-    waterTodoCount: 0,
-    fertilizeTodoCount: 0,
+    waterPlantCount: 0,
+    fertilizePlantCount: 0,
     plantStrip: [],
 
     tasks: [],
@@ -77,6 +77,14 @@ Page({
 
     const waterTodoCount = tasks.filter((t) => t.typeClass === "water").length;
     const fertilizeTodoCount = tasks.filter((t) => t.typeClass === "fertilize").length;
+    const waterPlantIds = new Set();
+    const fertPlantIds = new Set();
+    for (const t of tasks) {
+      if (t.typeClass === "water" && t.plantId) waterPlantIds.add(String(t.plantId));
+      if (t.typeClass === "fertilize" && t.plantId) fertPlantIds.add(String(t.plantId));
+    }
+    const waterPlantCount = waterPlantIds.size || waterTodoCount;
+    const fertilizePlantCount = fertPlantIds.size || fertilizeTodoCount;
 
     let weatherSummaryLine = "";
     let growthHint = "";
@@ -88,14 +96,18 @@ Page({
       growthHint = "当前天气较适宜室内观叶植物生长。";
     }
 
-    const plantStrip = (Array.isArray(plants) ? plants : []).slice(0, 12).map((p) => ({
-      id: p.id,
-      nickname: p.nickname || "未命名",
-      avatarLetter:
-        p.nickname && String(p.nickname).trim()
-          ? String(p.nickname).trim().charAt(0)
-          : "植",
-    }));
+    const plantStrip = (Array.isArray(plants) ? plants : []).slice(0, 12).map((p, i) => {
+      const id = p.id != null ? String(p.id) : "";
+      return {
+        stripId: id || `idx-${i}`,
+        id,
+        nickname: p.nickname || "未命名",
+        avatarLetter:
+          p.nickname && String(p.nickname).trim()
+            ? String(p.nickname).trim().charAt(0)
+            : "植",
+      };
+    });
 
     this.setData({
       tasks,
@@ -106,8 +118,8 @@ Page({
       forecastDays,
       weatherSummaryLine,
       growthHint,
-      waterTodoCount,
-      fertilizeTodoCount,
+      waterPlantCount,
+      fertilizePlantCount,
       plantStrip,
     });
 
@@ -125,6 +137,7 @@ Page({
       const list = Array.isArray(raw) ? raw : [];
       return list.map((t) => ({
         id: t.id,
+        plantId: t.plantId != null ? String(t.plantId) : "",
         plantNickname: t.plant?.nickname || "",
         displayTime: t.dueDate
           ? String(t.dueDate).slice(0, 16).replace("T", " ")

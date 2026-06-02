@@ -10,14 +10,14 @@
       <text wx:if="{{weatherSummaryLine}}" class="index-weather-hero__cond">{{weatherSummaryLine}}</text>
       <text wx:if="{{growthHint}}" class="index-weather-hero__hint">{{growthHint}}</text>
     </view>
-    <view class="index-weather-hero__sun">☀️</view>
+    <image class="index-weather-hero__sun-img" src="/images/icons-png/home-weather-sun.png" mode="aspectFit" />
   </view>
   <view wx:else class="index-weather-hero ga-card index-weather-hero--empty" bindtap="goSettings">
     <view class="index-weather-hero__left">
       <text class="index-weather-hero__date">{{heroDate}} · {{weekday}}</text>
       <text class="index-weather-hero__placeholder">保存位置后可在「我」中开启定位，首页将显示本地天气</text>
     </view>
-    <view class="index-weather-hero__sun index-weather-hero__sun--muted">🌍</view>
+    <image class="index-weather-hero__sun-img index-weather-hero__sun-img--muted" src="/images/icons-png/home-weather-earth.png" mode="aspectFit" />
   </view>
 
   <view class="index-section-head">
@@ -26,15 +26,17 @@
   <view class="index-todos-row ga-card">
     <view class="index-donut-wrap" bindtap="goPlants">
       <view class="index-donut index-donut--water">
-        <text class="index-donut__num">{{waterTodoCount}}</text>
+        <image class="index-donut__glyph" src="/images/icons-png/home-todo-water.png" mode="aspectFit" />
+        <text class="index-donut__num">{{waterPlantCount}}</text>
       </view>
-      <text class="index-donut__cap">待浇水</text>
+      <text class="index-donut__cap">株植物需要浇水</text>
     </view>
     <view class="index-donut-wrap" bindtap="goPlants">
       <view class="index-donut index-donut--fert">
-        <text class="index-donut__num">{{fertilizeTodoCount}}</text>
+        <image class="index-donut__glyph" src="/images/icons-png/home-todo-fertilize.png" mode="aspectFit" />
+        <text class="index-donut__num">{{fertilizePlantCount}}</text>
       </view>
-      <text class="index-donut__cap">待施肥</text>
+      <text class="index-donut__cap">株植物需要施肥</text>
     </view>
   </view>
 
@@ -42,11 +44,11 @@
     <text class="index-section-head__title">我的植物</text>
     <text class="index-section-head__link" bindtap="goPlants">全部 ›</text>
   </view>
-  <scroll-view wx:if="{{plantStrip.length}}" scroll-x class="index-plants-scroll" show-scrollbar="{{false}}">
+  <view wx:if="{{plantStrip.length}}" class="index-plants-scroll">
     <view class="index-plants-scroll__inner">
       <view
         wx:for="{{plantStrip}}"
-        wx:key="id"
+        wx:key="stripId"
         class="index-plant-chip"
         data-id="{{item.id}}"
         bindtap="goPlantEdit"
@@ -55,7 +57,7 @@
         <text class="index-plant-chip__name">{{item.nickname}}</text>
       </view>
     </view>
-  </scroll-view>
+  </view>
   <view wx:else class="index-plants-empty ga-card" bindtap="goAdd">
     <text>还没有植物，点此处添加</text>
   </view>
@@ -63,15 +65,15 @@
   <text class="index-section-head__title index-section-head__title--solo">常用工具</text>
   <view class="index-tools ga-card">
     <view class="index-tool" bindtap="onIdentify">
-      <text class="index-tool__icon">🌼</text>
+      <image class="index-tool__icon-img" src="/images/icons-png/home-tool-identify.png" mode="aspectFit" />
       <text class="index-tool__label">植物识别</text>
     </view>
     <view class="index-tool" bindtap="onDiagnosePhoto">
-      <text class="index-tool__icon">🪴</text>
+      <image class="index-tool__icon-img" src="/images/icons-png/home-tool-soil.png" mode="aspectFit" />
       <text class="index-tool__label">土壤识别</text>
     </view>
     <view class="index-tool" bindtap="onDiagnoseSymptom">
-      <text class="index-tool__icon">🐛</text>
+      <image class="index-tool__icon-img" src="/images/icons-png/home-tool-pest.png" mode="aspectFit" />
       <text class="index-tool__label">病虫害诊断</text>
     </view>
   </view>

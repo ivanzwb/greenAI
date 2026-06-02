@@ -22,26 +22,26 @@
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "images/tab-icons/home-unselected.png",
-        "selectedIconPath": "images/tab-icons/home-selected.png"
+        "iconPath": "images/icons-png/tab-home-unselected.png",
+        "selectedIconPath": "images/icons-png/tab-home-selected.png"
       },
       {
         "pagePath": "pages/plants/plants",
         "text": "养护",
-        "iconPath": "images/tab-icons/identify-unselected.png",
-        "selectedIconPath": "images/tab-icons/identify-selected.png"
+        "iconPath": "images/icons-png/tab-care-unselected.png",
+        "selectedIconPath": "images/icons-png/tab-care-selected.png"
       },
       {
         "pagePath": "pages/discover/discover",
         "text": "知识",
-        "iconPath": "images/tab-icons/knowledge-unselected.png",
-        "selectedIconPath": "images/tab-icons/knowledge-selected.png"
+        "iconPath": "images/icons-png/tab-knowledge-unselected.png",
+        "selectedIconPath": "images/icons-png/tab-knowledge-selected.png"
       },
       {
         "pagePath": "pages/settings/settings",
         "text": "我",
-        "iconPath": "images/tab-icons/me-unselected.png",
-        "selectedIconPath": "images/tab-icons/me-selected.png"
+        "iconPath": "images/icons-png/tab-me-unselected.png",
+        "selectedIconPath": "images/icons-png/tab-me-selected.png"
       }
     ]
   },
